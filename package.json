@@ -2,13 +2,20 @@
   "name": "t8d",
   "private": true,
   "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "T8D Project Monorepo",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "frontend:dev": "pnpm --filter t8d-frontend dev",
+    "frontend:build": "pnpm --filter t8d-frontend build",
+    "backend:dev": "pnpm --filter t8d-backend dev",
+    "backend:build": "pnpm --filter t8d-backend build",
+    "dev:all": "pnpm -r --parallel dev"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "",
   "packageManager": "pnpm@10.9.0"
 }
