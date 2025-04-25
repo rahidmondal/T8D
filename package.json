@@ -1,0 +1,28 @@
+{
+  "name": "t8d",
+  "private": true,
+  "version": "0.0.0",
+  "description": "T8D Project Monorepo",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md,html,css}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,md,html,css}\"",
+    "test": "pnpm -r test",
+    "frontend:dev": "pnpm --filter t8d-frontend dev",
+    "frontend:build": "pnpm --filter t8d-frontend build",
+    "backend:dev": "pnpm --filter t8d-backend dev",
+    "backend:build": "pnpm --filter t8d-backend build",
+    "dev:all": "pnpm -r --parallel dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "",
+  "packageManager": "pnpm@10.9.0",
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.2",
+    "prettier": "^3.5.3"
+  }
+}
