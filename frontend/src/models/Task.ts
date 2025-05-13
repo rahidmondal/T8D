@@ -14,7 +14,6 @@ export interface Task {
   dueDate: number | null;
 
   parentId: string | null;
-  childIds: string[] | null;
 
   hash: string;
 
