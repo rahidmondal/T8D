@@ -1,6 +1,6 @@
 import js from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import tseslint from 'typescript-eslint';
-import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   { ignores: ['**/node_modules/**', '**/dist/**'] },
@@ -12,5 +12,5 @@ export default tseslint.config(
       'no-unused-vars': 'warn',
     },
   },
-  prettierConfig,
+  eslintConfigPrettier,
 );
