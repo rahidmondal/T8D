@@ -13,4 +13,32 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+  color: #213547;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f9fafb;
+}
+
+input,
+textarea,
+button,
+div,
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
 }

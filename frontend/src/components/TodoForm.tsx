@@ -31,7 +31,7 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
   };
 
   return (
-    <div className="mb-4 p-4 border rounded-lg shadow-sm bg-white">
+    <div className="mb-4 p-4 border rounded-lg shadow-sm bg-white text-gray-900">
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <input
@@ -39,7 +39,7 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="What needs to be done?"
-            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all"
+            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
             required
             autoFocus
             maxLength={100}
@@ -52,7 +52,7 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Add details (optional)"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
               rows={3}
               maxLength={500}
             />

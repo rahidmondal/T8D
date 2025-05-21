@@ -147,14 +147,14 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
   if (isEditing) {
     return (
       <div className="mb-2">
-        <div className="p-3 border rounded-lg shadow-sm mb-2 bg-white border-purple-300">
+        <div className="p-3 border rounded-lg shadow-sm mb-2 bg-white border-purple-300 text-gray-900">
           <form onSubmit={saveEdits} className="space-y-3">
             <div>
               <input
                 type="text"
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 required
                 maxLength={100}
                 autoFocus
@@ -165,7 +165,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
                 value={editDescription}
                 onChange={e => setEditDescription(e.target.value)}
                 placeholder="Description (optional)"
-                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 rows={3}
                 maxLength={500}
               />
@@ -201,14 +201,14 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onDragEnd={() => setIsDragging(false)}
-        className={`task-item p-3 border rounded-lg shadow-sm mb-2 hover:shadow-md transition-shadow bg-white relative
-          ${isDragging ? 'opacity-50 border-dashed' : ''}
-          ${
-            isHovering && task.id === dragTarget
-              ? `border-purple-500 ${dropPosition === 'inside' ? 'bg-purple-50' : 'bg-white'}`
-              : 'border-gray-200'
-          }
-          ${getDropIndicatorClass()}`}
+        className={`task-item p-3 border rounded-lg shadow-sm mb-2 hover:shadow-md transition-shadow bg-white relative text-gray-900
+        ${isDragging ? 'opacity-50 border-dashed' : ''}
+        ${
+          isHovering && task.id === dragTarget
+            ? `border-purple-500 ${dropPosition === 'inside' ? 'bg-purple-50' : 'bg-white'}`
+            : 'border-gray-200'
+        }
+        ${getDropIndicatorClass()}`}
       >
         <div className="flex items-center gap-2">
           <input
@@ -219,7 +219,9 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
           />
 
           <span
-            className={`flex-1 ${task.status === TaskStatus.COMPLETED ? 'line-through text-gray-500' : 'font-medium'} cursor-pointer`}
+            className={`flex-1 ${
+              task.status === TaskStatus.COMPLETED ? 'line-through text-gray-500' : 'font-medium text-gray-900'
+            } cursor-pointer`}
             onClick={toggleAddForm}
           >
             {task.name}
@@ -228,7 +230,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
           <div className="flex gap-2">
             <button
               onClick={startEditing}
-              className="text-gray-400 hover:text-purple-600 focus:outline-none"
+              className="text-gray-500 hover:text-purple-600 focus:outline-none"
               title="Edit task"
             >
               <svg
@@ -249,7 +251,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
             <button
               onClick={toggleAddForm}
-              className="text-gray-400 hover:text-purple-600 focus:outline-none"
+              className="text-gray-500 hover:text-purple-600 focus:outline-none"
               title="Add subtask"
             >
               <svg
@@ -266,7 +268,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
             {task.parentId && (
               <button
                 onClick={promoteTask}
-                className="text-gray-400 hover:text-purple-600 focus:outline-none"
+                className="text-gray-500 hover:text-purple-600 focus:outline-none"
                 title="Move to root level"
               >
                 <svg
@@ -284,7 +286,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
             {childTasks.length > 0 && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-gray-400 hover:text-purple-600 focus:outline-none"
+                className="text-gray-500 hover:text-purple-600 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
               >
                 {isExpanded ? (
@@ -313,7 +315,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
             <button
               onClick={handleDelete}
-              className="text-gray-400 hover:text-red-500 focus:outline-none"
+              className="text-gray-500 hover:text-red-500 focus:outline-none"
               title="Delete"
             >
               <svg

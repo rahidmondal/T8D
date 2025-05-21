@@ -137,9 +137,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   }
 
   return (
-    <div className="relative pb-[120px]">
-      {' '}
-      {/* Add padding at bottom to make space for sticky input */}
+    <div className="relative pb-[120px] text-gray-900">
       <div
         className="min-h-[300px]"
         onDragOver={e => {
@@ -200,6 +198,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           </div>
         )}
       </div>
+
       {/* Sticky task input at the bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -217,7 +216,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                   <input
                     type="text"
                     placeholder="Add a new task..."
-                    className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all"
+                    className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
                     value={quickTaskInput}
                     onChange={e => setQuickTaskInput(e.target.value)}
                     required
