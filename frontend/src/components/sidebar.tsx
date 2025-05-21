@@ -56,7 +56,7 @@ export const SideBar = function () {
       </div>
 
       <div className="flex justify-center p-3 text-xs text-gray-500 border-t bg-gray-50">
-        <p>T8D v1.0.0</p>
+        <p>T8D v0.1.0</p>
       </div>
     </div>
   );
