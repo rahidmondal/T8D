@@ -3,5 +3,6 @@
   "dist",
   "build",
   ".pnpm-store",
-  "pnpm-lock.yaml"
+  "pnpm-lock.yaml",
+  "dev-dist"
 ]
