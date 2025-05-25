@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import './App.css';
+import DateTime from './components/DateTime';
 import { SideBar } from './components/sidebar';
 import TodoList from './components/TodoList';
+
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -18,9 +20,12 @@ function App() {
 
       <main className="flex-1 overflow-auto p-6">
         <div className="max-w-3xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">My Tasks</h1>
-            <p className="text-gray-600">Organize your work and life</p>
+          <header className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">My Tasks</h1>
+              <p className="text-gray-600">Organize your work and life</p>
+            </div>
+            <DateTime />
           </header>
 
           <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} />
