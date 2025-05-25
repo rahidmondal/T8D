@@ -4,3 +4,4 @@ build
 .pnpm-store
 pnpm-lock.yaml
 .dockerignore
+package.json
