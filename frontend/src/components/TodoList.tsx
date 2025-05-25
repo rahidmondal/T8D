@@ -144,7 +144,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           e.preventDefault();
           setIsDragOver(true);
         }}
-        onDragLeave={() => setIsDragOver(false)}
+        onDragLeave={() => {
+          setIsDragOver(false);
+        }}
         onDrop={e => {
           e.preventDefault();
           const draggedId = e.dataTransfer.getData('taskId');
@@ -191,7 +193,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 childTasks={getChildTasks(task.id)}
                 onDrop={handleDrop}
                 onTasksChange={handleTaskChange}
-                onDragOver={taskId => setDragTarget(taskId)}
+                onDragOver={taskId => {
+                  setDragTarget(taskId);
+                }}
                 dragTarget={dragTarget}
               />
             ))}
@@ -218,7 +222,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                     placeholder="Add a new task..."
                     className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
                     value={quickTaskInput}
-                    onChange={e => setQuickTaskInput(e.target.value)}
+                    onChange={e => {
+                      setQuickTaskInput(e.target.value);
+                    }}
                     required
                     maxLength={100}
                   />
@@ -231,7 +237,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowFullForm(true)}
+                  onClick={() => {
+                    setShowFullForm(true);
+                  }}
                   className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1 self-start"
                 >
                   <svg
