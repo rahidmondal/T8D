@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
-    "preview": "vite preview"
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,md}\"",
+    "type-check": "tsc --noEmit -p tsconfig.app.json",
+    "check": "pnpm format:check && pnpm lint && pnpm type-check",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "build": "vite build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.7",
