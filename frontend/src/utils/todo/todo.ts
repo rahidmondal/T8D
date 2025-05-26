@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Task, TaskStatus } from '../../models/Task';
 
+import { Task, TaskStatus } from '../../models/Task';
 import { addTaskToDb, deleteTaskFromDb, getAllTasksFromDb, getTaskFromDb, updateTaskInDb } from '../database/database';
 
 const generateTaskHash = (task: Omit<Task, 'hash'>): string => {

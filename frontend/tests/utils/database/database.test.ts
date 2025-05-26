@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+
 import { Task, TaskStatus } from '../../../src/models/Task';
 import {
   addTaskToDb,
