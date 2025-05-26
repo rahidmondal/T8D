@@ -1,9 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vite.dev/config/
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export default defineConfig({
   plugins: [
     react(),
@@ -37,4 +41,10 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      '@components': resolve(__dirname, 'src/components'),
+      '@src': resolve(__dirname, 'src'),
+    },
+  },
 });

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 
 import './App.css';
-import { SideBar } from './components/sidebar';
-import TodoList from './components/TodoList';
+
+import { SideBar } from '@components/Sidebar';
+import TodoList from '@components/TodoList';
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
