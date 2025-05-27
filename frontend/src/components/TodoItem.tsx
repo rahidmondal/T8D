@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
+
 import { Task, TaskStatus } from '../models/Task';
 import { deleteTask, updateTask } from '../utils/todo/todo';
+
 import TodoForm from './TodoForm';
 
 interface TodoItemProps {
@@ -153,7 +155,9 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
               <input
                 type="text"
                 value={editName}
-                onChange={e => setEditName(e.target.value)}
+                onChange={e => {
+                  setEditName(e.target.value);
+                }}
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 required
                 maxLength={100}
@@ -163,7 +167,9 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
             <div>
               <textarea
                 value={editDescription}
-                onChange={e => setEditDescription(e.target.value)}
+                onChange={e => {
+                  setEditDescription(e.target.value);
+                }}
                 placeholder="Description (optional)"
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 rows={3}
@@ -200,7 +206,9 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onDragEnd={() => setIsDragging(false)}
+        onDragEnd={() => {
+          setIsDragging(false);
+        }}
         className={`task-item p-3 border rounded-lg shadow-sm mb-2 hover:shadow-md transition-shadow bg-white relative text-gray-900
         ${isDragging ? 'opacity-50 border-dashed' : ''}
         ${
@@ -285,7 +293,9 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
             {childTasks.length > 0 && (
               <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                  setIsExpanded(!isExpanded);
+                }}
                 className="text-gray-500 hover:text-purple-600 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
               >

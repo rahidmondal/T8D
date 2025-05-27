@@ -1,4 +1,5 @@
 import { DBSchema, openDB } from 'idb';
+
 import { Task, TaskStatus } from '../../models/Task';
 
 interface T8DDatabase extends DBSchema {

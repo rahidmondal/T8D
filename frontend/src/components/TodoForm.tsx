@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { createTask } from '../utils/todo/todo';
 
 interface TodoFormProps {
@@ -37,7 +38,9 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
           <input
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setName(e.target.value);
+            }}
             placeholder="What needs to be done?"
             className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
             required
@@ -50,7 +53,9 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
           <div className="mb-3">
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={e => {
+                setDescription(e.target.value);
+              }}
               placeholder="Add details (optional)"
               className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
               rows={3}
@@ -60,7 +65,9 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
         ) : (
           <button
             type="button"
-            onClick={() => setIsExpanded(true)}
+            onClick={() => {
+              setIsExpanded(true);
+            }}
             className="mb-3 text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1"
           >
             <svg

@@ -1,17 +1,20 @@
 {
-  "name": "t8d-frontend",
+  "name": "t8d",
   "private": true,
   "version": "0.2.0",
   "type": "module",
+  "description": "T8D - A Simple Task Manager",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "test": "vitest run",
-    "type-check": "tsc -p tsconfig.app.json",
     "lint": "eslint .",
-    "preview": "vite preview",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,md}\"",
+    "type-check": "tsc --noEmit -p tsconfig.app.json",
+    "check": "pnpm format:check && pnpm lint && pnpm type-check",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "build": "vite build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.7",
@@ -30,14 +33,9 @@
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.4.1",
-    "eslint": "^9.27.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.1.0",
-    "typescript": "~5.7.3",
-    "typescript-eslint": "^8.32.1",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.0.0",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "fake-indexeddb": "^6.0.1"
   }
 }
