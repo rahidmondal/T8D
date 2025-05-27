@@ -1,6 +1,11 @@
 import logo from '../assets/t8d512.jpg';
 
-export const SideBar = function () {
+type SideBarProps = {
+  selectedView: string;
+  onSelectView: (view: string) => void;
+};
+
+export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) => {
   return (
     <div className="h-full flex flex-col bg-white border-r">
       <div className="flex flex-col justify-center items-center bg-gradient-to-r from-purple-700 to-purple-500 text-white py-6">
@@ -11,9 +16,13 @@ export const SideBar = function () {
 
       <div className="p-4 flex-1">
         <nav className="space-y-1">
-          <a
-            href="#"
-            className="flex items-center px-3 py-2 text-sm rounded-md bg-purple-50 text-purple-700 font-medium"
+          <button
+            onClick={() => onSelectView('tasks')}
+            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition ${
+              selectedView === 'tasks'
+                ? 'bg-purple-50 text-purple-700'
+                : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+            }`}
           >
             <svg
               className="mr-3 h-4 w-4"
@@ -30,10 +39,14 @@ export const SideBar = function () {
               />
             </svg>
             My Tasks
-          </a>
-          <div
-            className="flex items-center px-3 py-2 text-sm rounded-md text-gray-400 cursor-not-allowed opacity-60"
-            title="Coming soon"
+          </button>
+          <button
+            onClick={() => onSelectView('settings')}
+            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition ${
+              selectedView === 'settings'
+                ? 'bg-purple-50 text-purple-700'
+                : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+            }`}
           >
             <svg
               className="mr-3 h-4 w-4"
@@ -51,7 +64,7 @@ export const SideBar = function () {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Settings
-          </div>
+          </button>
         </nav>
       </div>
 
