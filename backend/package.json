@@ -1,0 +1,8 @@
+{
+  "name": "t8d-sync-server",
+  "version": "0.0.0",
+  "description": "T8D Sync Server - Simple Server to Sync Task across Devices",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+
 import { TaskStatus } from '../../../src/models/Task';
 import { deleteAllTasksFromDb } from '../../../src/utils/database/database';
 import { createTask, deleteTask, getAllTasks, getTask, updateTask } from '../../../src/utils/todo/todo';
