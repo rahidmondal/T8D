@@ -1,7 +1,7 @@
 {
-  "name": "t8d",
+  "name": "t8d-monorepo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "T8D Project Monorepo",
   "scripts": {
     "dev": "pnpm -r dev",
@@ -28,10 +28,6 @@
     "backend:preview": "pnpm --filter t8d-backend preview",
     "dev:all": "pnpm -r --parallel dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "",
-  "packageManager": "pnpm@10.11.0",
   "devDependencies": {
     "@types/node": "^22.15.21",
     "@vitest/coverage-v8": "3.1.4",

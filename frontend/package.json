@@ -1,8 +1,9 @@
 {
-  "name": "t8d-frontend",
+  "name": "t8d",
   "private": true,
   "version": "0.2.0",
   "type": "module",
+  "description": "T8D - A Simple Task Manager",
   "scripts": {
     "dev": "vite",
     "lint": "eslint .",
