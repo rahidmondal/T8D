@@ -5,12 +5,15 @@ import { createTask } from '../utils/todo/todo';
 interface TodoFormProps {
   parentId?: string | null;
   onTaskCreated: () => void;
+  // Optional prop to suggest initial state for isExpanded, useful when invoked from "Add task with description"
+  startExpanded?: boolean;
 }
 
-export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormProps) {
+export default function TodoForm({ parentId = null, onTaskCreated, startExpanded = false }: TodoFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Use startExpanded to set initial state, but allow internal control afterwards
+  const [isExpanded, setIsExpanded] = useState(startExpanded);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,17 +25,18 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
       await createTask(name, description || undefined, parentId);
       setName('');
       setDescription('');
-      setIsExpanded(false);
+      setIsExpanded(startExpanded || false); // Reset to initial or default if not always expanded
       onTaskCreated();
     } catch (error) {
       console.error('Error creating task:', error);
+      // Potentially show an error message to the user
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mb-4 p-4 border rounded-lg shadow-sm bg-white text-gray-900">
+    <div className="mb-4 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <input
@@ -42,9 +46,9 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
               setName(e.target.value);
             }}
             placeholder="What needs to be done?"
-            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
+            className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
             required
-            autoFocus
+            autoFocus={!parentId} // Autofocus only for root level new task form
             maxLength={100}
           />
         </div>
@@ -57,7 +61,7 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
                 setDescription(e.target.value);
               }}
               placeholder="Add details (optional)"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 transition-all text-gray-900"
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
               rows={3}
               maxLength={500}
             />
@@ -68,7 +72,7 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
             onClick={() => {
               setIsExpanded(true);
             }}
-            className="mb-3 text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1"
+            className="mb-3 text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm flex items-center gap-1"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -86,23 +90,30 @@ export default function TodoForm({ parentId = null, onTaskCreated }: TodoFormPro
         <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isSubmitting}
+            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting || !name.trim()}
           >
             {isSubmitting ? 'Adding...' : 'Add Task'}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              onTaskCreated();
-              setName('');
-              setDescription('');
-              setIsExpanded(false);
-            }}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
+          {/* Show cancel button only if it's an expanded form or has content */}
+          {(isExpanded || name || description) && (
+            <button
+              type="button"
+              onClick={() => {
+                // If it's a sub-task form, onTaskCreated might close it.
+                // Otherwise, just clear and collapse.
+                if (parentId) {
+                    onTaskCreated(); // This typically reloads tasks and might hide the form
+                }
+                setName('');
+                setDescription('');
+                setIsExpanded(startExpanded || false);
+              }}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </form>
     </div>
