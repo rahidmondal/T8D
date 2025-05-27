@@ -23,7 +23,7 @@ export default function DateTime() {
   }, []);
 
   return (
-    <div className="text-right text-sm text-gray-700 font-medium">
+    <div className="text-right text-sm text-slate-600 dark:text-slate-400 font-medium">
       <div>{formatDate(now)}</div>
       <div className="tracking-widest">{formatTime(now)}</div>
     </div>

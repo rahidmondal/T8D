@@ -7,21 +7,21 @@ type SideBarProps = {
 
 export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) => {
   return (
-    <div className="h-full flex flex-col bg-white border-r">
-      <div className="flex flex-col justify-center items-center bg-gradient-to-r from-purple-700 to-purple-500 text-white py-6">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+      <div className="flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
         <img src={logo} alt="T8D logo" className="h-16 w-16 mb-2 rounded-lg shadow-md object-cover" />
         <h1 className="text-xl font-bold">T8D</h1>
-        <p className="text-sm text-purple-100">Task Manager</p>
+        <p className="text-sm text-sky-100 dark:text-sky-200">Task Manager</p>
       </div>
 
       <div className="p-4 flex-1">
         <nav className="space-y-1">
           <button
             onClick={() => onSelectView('tasks')}
-            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition ${
+            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
               selectedView === 'tasks'
-                ? 'bg-purple-50 text-purple-700'
-                : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+                ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             <svg
@@ -42,10 +42,10 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
           </button>
           <button
             onClick={() => onSelectView('settings')}
-            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition ${
+            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
               selectedView === 'settings'
-                ? 'bg-purple-50 text-purple-700'
-                : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+                ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             <svg
@@ -68,7 +68,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
         </nav>
       </div>
 
-      <div className="flex justify-center p-3 text-xs text-gray-500 border-t bg-gray-50">
+      <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"> {/* Slightly different bg for footer in dark */}
         <p>T8D v0.2.0</p>
       </div>
     </div>
