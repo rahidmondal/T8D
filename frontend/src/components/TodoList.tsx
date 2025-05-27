@@ -128,7 +128,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const getRootTasks = () => tasks.filter(task => !task.parentId);
 
   // Get child tasks for a specific parent
-  const getChildTasks = (parentId: string) => tasks.filter(task => task.parentId === parentId);
+  function getChildTasks(parentId: string) {
+    return tasks.filter(task => task.parentId === parentId);
+  }
 
   if (isLoading) {
     return (
@@ -193,11 +195,10 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 key={task.id}
                 task={task}
                 childTasks={getChildTasks(task.id)}
+                getChildTasks={getChildTasks}
                 onDrop={handleDrop}
                 onTasksChange={handleTaskChange}
-                onDragOver={taskId => {
-                  setDragTarget(taskId);
-                }}
+                onDragOver={taskId => setDragTarget(taskId)}
                 dragTarget={dragTarget}
               />
             ))}

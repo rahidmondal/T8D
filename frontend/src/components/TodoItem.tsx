@@ -1,20 +1,27 @@
 import { useRef, useState } from 'react';
-
 import { Task, TaskStatus } from '../models/Task';
 import { deleteTask, updateTask } from '../utils/todo/todo';
-
 import TodoForm from './TodoForm';
 
 interface TodoItemProps {
   task: Task;
   childTasks: Task[];
+  getChildTasks: (parentId: string) => Task[];
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
   onTasksChange: () => void;
   onDragOver?: (taskId: string) => void;
   dragTarget?: string | null;
 }
 
-export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDragOver, dragTarget }: TodoItemProps) {
+export default function TodoItem({
+  task,
+  childTasks,
+  getChildTasks,
+  onDrop,
+  onTasksChange,
+  onDragOver,
+  dragTarget,
+}: TodoItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -38,7 +45,6 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
     onDragOver?.(task.id);
 
-    // Calculate if we're in the top, middle, or bottom third of the element
     const rect = itemRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
@@ -63,14 +69,11 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
     e.stopPropagation();
 
     const draggedId = e.dataTransfer.getData('taskId');
-
-    // Prevent dropping onto itself
     if (draggedId === task.id) {
       setIsHovering(false);
       return;
     }
 
-    // Use the determined drop position
     await onDrop(draggedId, task.id, dropPosition);
     setIsHovering(false);
   };
@@ -116,9 +119,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
   const saveEdits = async (e?: React.FormEvent) => {
     e?.preventDefault();
-
     if (!editName.trim()) return;
-
     try {
       await updateTask(task.id, {
         name: editName,
@@ -137,7 +138,6 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
   const getDropIndicatorClass = () => {
     if (!isHovering || task.id !== dragTarget) return '';
-
     if (dropPosition === 'before') {
       return 'before:absolute before:left-0 before:right-0 before:top-0 before:h-1 before:bg-purple-500 before:-translate-y-0.5';
     } else if (dropPosition === 'after') {
@@ -155,9 +155,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
               <input
                 type="text"
                 value={editName}
-                onChange={e => {
-                  setEditName(e.target.value);
-                }}
+                onChange={e => setEditName(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 required
                 maxLength={100}
@@ -167,9 +165,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
             <div>
               <textarea
                 value={editDescription}
-                onChange={e => {
-                  setEditDescription(e.target.value);
-                }}
+                onChange={e => setEditDescription(e.target.value)}
                 placeholder="Description (optional)"
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 text-gray-900"
                 rows={3}
@@ -206,9 +202,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onDragEnd={() => {
-          setIsDragging(false);
-        }}
+        onDragEnd={() => setIsDragging(false)}
         className={`task-item p-3 border rounded-lg shadow-sm mb-2 hover:shadow-md transition-shadow bg-white relative text-gray-900
         ${isDragging ? 'opacity-50 border-dashed' : ''}
         ${
@@ -293,9 +287,7 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
 
             {childTasks.length > 0 && (
               <button
-                onClick={() => {
-                  setIsExpanded(!isExpanded);
-                }}
+                onClick={() => setIsExpanded(!isExpanded)}
                 className="text-gray-500 hover:text-purple-600 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
               >
@@ -367,7 +359,8 @@ export default function TodoItem({ task, childTasks, onDrop, onTasksChange, onDr
             <TodoItem
               key={childTask.id}
               task={childTask}
-              childTasks={[]}
+              childTasks={getChildTasks(childTask.id)}
+              getChildTasks={getChildTasks}
               onDrop={onDrop}
               onTasksChange={onTasksChange}
               onDragOver={onDragOver}

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 function formatDate(date: Date) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = date.toLocaleString("default", { month: "long" });
-  const year = date.getFullYear();
+  const year = String(date.getFullYear());
   return `${day} - ${month} - ${year}`;
 }
 
