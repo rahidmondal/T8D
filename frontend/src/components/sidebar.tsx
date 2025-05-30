@@ -17,7 +17,9 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
       <div className="p-4 flex-1">
         <nav className="space-y-1">
           <button
-            onClick={() => onSelectView('tasks')}
+            onClick={() => {
+              onSelectView('tasks');
+            }}
             className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
               selectedView === 'tasks'
                 ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
@@ -41,7 +43,9 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
             My Tasks
           </button>
           <button
-            onClick={() => onSelectView('settings')}
+            onClick={() => {
+              onSelectView('settings');
+            }}
             className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
               selectedView === 'settings'
                 ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
@@ -68,8 +72,9 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
         </nav>
       </div>
 
-      <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"> {/* Slightly different bg for footer in dark */}
-        <p>T8D v0.2.0</p>
+      <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        {' '}
+        <p>T8D v0.2.1</p>
       </div>
     </div>
   );

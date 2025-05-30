@@ -1,7 +1,7 @@
 {
   "name": "t8d",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "T8D - A Simple Task Manager",
   "scripts": {
