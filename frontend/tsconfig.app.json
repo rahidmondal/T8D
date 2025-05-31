@@ -27,5 +27,5 @@
       "@components/*": ["src/components/*"]
     }
   },
-  "include": ["src", "tests"]
+  "include": ["src/**/*", "tests/**/*"]
 }
