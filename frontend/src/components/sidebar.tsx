@@ -1,4 +1,4 @@
-import logo from '../assets/t8d512.jpg';
+import logo from '@src/assets/t8d512.jpg';
 
 type SideBarProps = {
   selectedView: string;

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
-import { Task, TaskStatus } from '../models/Task';
-import { deleteTask, updateTask } from '../utils/todo/todo';
+
+import { Task, TaskStatus } from '@src/models/Task';
+import { deleteTask, updateTask } from '@src/utils/todo/todo';
+
 import TodoForm from './TodoForm';
 
 interface TodoItemProps {
@@ -46,9 +48,8 @@ export default function TodoItem({
     document.body.classList.remove('dragging');
     // Reset hover state for all items if needed, or rely on onDragLeave
     setIsHovering(false);
-     if (onDragOver) onDragOver(''); // Clear drag target
+    if (onDragOver) onDragOver(''); // Clear drag target
   };
-
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault(); // Necessary to allow dropping
@@ -80,7 +81,8 @@ export default function TodoItem({
     e.stopPropagation(); // Prevent event from bubbling up to parent drop zones
 
     const draggedId = e.dataTransfer.getData('taskId');
-    if (draggedId === task.id) { // Prevent dropping onto itself
+    if (draggedId === task.id) {
+      // Prevent dropping onto itself
       setIsHovering(false);
       return;
     }
@@ -161,8 +163,8 @@ export default function TodoItem({
     return '';
   };
 
-  const isDropTargetInside = isHovering && task.id === dragTarget && dropPosition === 'inside' && task.id !== e.dataTransfer.getData('taskId');
-
+  const isDropTargetInside =
+    isHovering && task.id === dragTarget && dropPosition === 'inside' && task.id !== e.dataTransfer.getData('taskId');
 
   if (isEditing) {
     return (
@@ -173,7 +175,9 @@ export default function TodoItem({
               <input
                 type="text"
                 value={editName}
-                onChange={e => setEditName(e.target.value)}
+                onChange={e => {
+                  setEditName(e.target.value);
+                }}
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                 required
                 maxLength={100}
@@ -183,7 +187,9 @@ export default function TodoItem({
             <div>
               <textarea
                 value={editDescription}
-                onChange={e => setEditDescription(e.target.value)}
+                onChange={e => {
+                  setEditDescription(e.target.value);
+                }}
                 placeholder="Description (optional)"
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                 rows={3}
@@ -212,7 +218,9 @@ export default function TodoItem({
   }
 
   return (
-    <div className="mb-2 relative"> {/* Added relative for drop indicators */}
+    <div className="mb-2 relative">
+      {' '}
+      {/* Added relative for drop indicators */}
       <div
         ref={itemRef}
         draggable
@@ -236,58 +244,96 @@ export default function TodoItem({
 
           <span
             className={`flex-1 ${
-              task.status === TaskStatus.COMPLETED ? 'line-through text-slate-500 dark:text-slate-400' : 'font-medium text-slate-800 dark:text-slate-100'
+              task.status === TaskStatus.COMPLETED
+                ? 'line-through text-slate-500 dark:text-slate-400'
+                : 'font-medium text-slate-800 dark:text-slate-100'
             } cursor-pointer`}
-            onClick={startEditing} // Allow clicking name to edit
+            onClick={toggleAddForm}
           >
             {task.name}
           </span>
 
-          <div className="flex gap-1"> {/* Reduced gap for icon buttons */}
+          <div className="flex gap-1">
+            {' '}
+            {/* Reduced gap for icon buttons */}
             <button
               onClick={startEditing}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
             </button>
-
             <button
               onClick={toggleAddForm}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Add subtask"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </button>
-
             {task.parentId && (
               <button
                 onClick={promoteTask}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title="Move to root level"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
               </button>
             )}
-
             {(childTasks.length > 0 || task.parentId) && ( // Show expand/collapse if it has children or is a child (to allow collapsing empty sub-lists)
               <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                  setIsExpanded(!isExpanded);
+                }}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
               >
                 {isExpanded ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}
@@ -298,18 +344,32 @@ export default function TodoItem({
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
               title="Delete"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
               </svg>
             </button>
           </div>
         </div>
 
-        {task.description && !isEditing && <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>}
+        {task.description && !isEditing && (
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>
+        )}
       </div>
-
       {showAddForm && (
-        <div className="ml-8 mt-2 mb-2"> {/* Indent sub-task form */}
+        <div className="ml-8 mt-2 mb-2">
+          {' '}
+          {/* Indent sub-task form */}
           <TodoForm
             parentId={task.id}
             onTaskCreated={() => {
@@ -319,7 +379,6 @@ export default function TodoItem({
           />
         </div>
       )}
-
       {isExpanded && childTasks.length > 0 && (
         <div className="ml-6 mt-2 border-l-2 border-slate-300 dark:border-slate-700 pl-3">
           {childTasks.map(childTask => (

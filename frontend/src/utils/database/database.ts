@@ -1,6 +1,5 @@
+import { Task, TaskStatus } from '@src/models/Task';
 import { DBSchema, openDB } from 'idb';
-
-import { Task, TaskStatus } from '../../models/Task';
 
 interface T8DDatabase extends DBSchema {
   tasks: {

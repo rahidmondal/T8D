@@ -5,14 +5,12 @@ import { createTask } from '../utils/todo/todo';
 interface TodoFormProps {
   parentId?: string | null;
   onTaskCreated: () => void;
-  // Optional prop to suggest initial state for isExpanded, useful when invoked from "Add task with description"
   startExpanded?: boolean;
 }
 
 export default function TodoForm({ parentId = null, onTaskCreated, startExpanded = false }: TodoFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  // Use startExpanded to set initial state, but allow internal control afterwards
   const [isExpanded, setIsExpanded] = useState(startExpanded);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,11 +23,10 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
       await createTask(name, description || undefined, parentId);
       setName('');
       setDescription('');
-      setIsExpanded(startExpanded || false); // Reset to initial or default if not always expanded
+      setIsExpanded(startExpanded || false);
       onTaskCreated();
     } catch (error) {
       console.error('Error creating task:', error);
-      // Potentially show an error message to the user
     } finally {
       setIsSubmitting(false);
     }
@@ -48,7 +45,7 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             placeholder="What needs to be done?"
             className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
             required
-            autoFocus={!parentId} // Autofocus only for root level new task form
+            autoFocus={!parentId}
             maxLength={100}
           />
         </div>
@@ -103,7 +100,7 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
                 // If it's a sub-task form, onTaskCreated might close it.
                 // Otherwise, just clear and collapse.
                 if (parentId) {
-                    onTaskCreated(); // This typically reloads tasks and might hide the form
+                  onTaskCreated(); // This typically reloads tasks and might hide the form
                 }
                 setName('');
                 setDescription('');

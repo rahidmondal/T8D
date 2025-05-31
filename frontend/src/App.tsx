@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
-import './App.css';
-import DateTime from './components/DateTime';
-import Settings from './components/Settings';
-import { SideBar } from './components/sidebar';
-import TodoList from './components/TodoList';
+import DateTime from '@components/DateTime';
+import Settings from '@components/Settings';
+import { SideBar } from '@components/Sidebar';
+import TodoList from '@components/TodoList';
+
+import '@src/App.css';
 
 const App: React.FC = () => {
   const [selectedView, setSelectedView] = useState('tasks');
