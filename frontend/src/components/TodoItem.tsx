@@ -153,18 +153,17 @@ export default function TodoItem({
   };
 
   const getDropIndicatorClass = () => {
-    if (!isHovering || task.id !== dragTarget || dragTarget === e.dataTransfer.getData('taskId')) return ''; // Ensure dragTarget is this item and not the one being dragged
+    if (!isHovering || task.id !== dragTarget) return '';
     if (dropPosition === 'before') {
       return 'before:absolute before:left-0 before:right-0 before:top-0 before:h-1 before:bg-sky-500 dark:before:bg-sky-400 before:-translate-y-0.5 before:z-10';
     } else if (dropPosition === 'after') {
       return 'after:absolute after:left-0 after:right-0 after:bottom-0 after:h-1 after:bg-sky-500 dark:after:bg-sky-400 after:translate-y-0.5 after:z-10';
     }
-    // For 'inside', we might change the background or border of the item itself
     return '';
   };
 
   const isDropTargetInside =
-    isHovering && task.id === dragTarget && dropPosition === 'inside' && task.id !== e.dataTransfer.getData('taskId');
+    isHovering && task.id === dragTarget && dropPosition === 'inside';
 
   if (isEditing) {
     return (
