@@ -3,9 +3,10 @@ import logo from '@src/assets/t8d512.jpg';
 type SideBarProps = {
   selectedView: string;
   onSelectView: (view: string) => void;
+  setSidebarOpen?: (open: boolean) => void; // Add this prop
 };
 
-export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) => {
+export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, setSidebarOpen }) => {
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
       <div className="flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
@@ -13,6 +14,18 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView }) 
         <h1 className="text-xl font-bold">T8D</h1>
         <p className="text-sm text-sky-100 dark:text-sky-200">Task Manager</p>
       </div>
+
+      {typeof window !== 'undefined' && window.innerWidth < 1024 && (
+        <button
+          className="block lg:hidden ml-auto mb-2 p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+          onClick={() => setSidebarOpen && setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
 
       <div className="p-4 flex-1">
         <nav className="space-y-1">
