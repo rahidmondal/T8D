@@ -138,9 +138,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   }
 
   return (
-    <div className="relative pb-[140px] text-slate-800 dark:text-slate-100">
-      {' '}
-      {/* Increased padding for taller sticky form */}
+    <div className="max-w-full sm:max-w-3xl mx-auto px-2 sm:px-4 py-3">
       <div
         ref={listContainerRef}
         className={`min-h-[300px] p-1 rounded-md ${isDragOverRoot && !dragTargetItem ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50' : ''}`}
@@ -229,44 +227,22 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
             <div className="p-1">
               {' '}
               {/* Reduced padding for compact quick add */}
-              <form onSubmit={handleQuickAddTask} className="flex flex-col">
-                <div className="mb-2 flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add a new task..."
-                    className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
-                    value={quickTaskInput}
-                    onChange={e => {
-                      setQuickTaskInput(e.target.value);
-                    }}
-                    required
-                    maxLength={100}
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50"
-                    disabled={!quickTaskInput.trim()}
-                  >
-                    Add
-                  </button>
-                </div>
+              <form onSubmit={handleQuickAddTask} className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a new task..."
+                  className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
+                  value={quickTaskInput}
+                  onChange={e => setQuickTaskInput(e.target.value)}
+                  required
+                  maxLength={100}
+                />
                 <button
-                  type="button"
-                  onClick={() => {
-                    setShowFullForm(true);
-                  }}
-                  className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm flex items-center gap-1 self-start mt-1"
+                  type="submit"
+                  className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50"
+                  disabled={!quickTaskInput.trim()}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add task with description
+                  Add
                 </button>
               </form>
             </div>
