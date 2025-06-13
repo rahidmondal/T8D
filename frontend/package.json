@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit -p tsconfig.app.json",
     "check": "pnpm format:check && pnpm lint && pnpm type-check",
     "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "preview": "vite preview",
     "build": "vite build"
   },
