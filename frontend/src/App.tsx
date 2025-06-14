@@ -10,7 +10,7 @@ import '@src/App.css';
 const App: React.FC = () => {
   const [selectedView, setSelectedView] = useState('tasks');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // NEW
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleTaskChange = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -46,8 +46,7 @@ const App: React.FC = () => {
           setSidebarOpen={setSidebarOpen}
         />
       </aside>
-      {/* Main content */}
-      <main className="flex-1 p-2 sm:p-4 md:p-6 overflow-auto">
+      <main className="flex-1 p-2 sm:p-4 md:p-6 overflow-auto relative">
         {selectedView === 'tasks' && (
           <div className="max-w-full sm:max-w-3xl mx-auto px-2 sm:px-4">
             <header className="mb-4 sm:mb-6 flex flex-row items-start sm:items-center justify-between gap-2 pl-12 lg:pl-0">
@@ -62,7 +61,13 @@ const App: React.FC = () => {
             <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} />
           </div>
         )}
-        {selectedView === 'settings' && <Settings />}
+        {selectedView === 'settings' && (
+          <div className="w-full px-4 sm:px-6 md:px-8">
+            <div className="mt-0 ml-5">
+              <Settings />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

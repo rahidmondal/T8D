@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
-import TodoForm from '@components/TodoForm';
 import TodoItem from '@components/TodoItem';
 
 import { Task } from '../models/Task';
 import { createTask, getAllTasks, updateTask } from '../utils/todo/todo';
 
+import TodoForm from './TodoForm';
+
 interface TodoListProps {
-  onTaskChange?: () => void; // To notify App.tsx or other parent components of changes
+  onTaskChange?: () => void;
 }
 
 export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDragOverRoot, setIsDragOverRoot] = useState(false); // For dropping at root level
+  const [isDragOverRoot, setIsDragOverRoot] = useState(false);
   const [quickTaskInput, setQuickTaskInput] = useState('');
-  const [showFullForm, setShowFullForm] = useState(false); // For the sticky form to expand
-  const [dragTargetItem, setDragTargetItem] = useState<string | null>(null); // ID of item being hovered over
+  const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
 
   const listContainerRef = useRef<HTMLDivElement>(null);
 
@@ -28,7 +28,6 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     setIsLoading(true);
     try {
       const allTasks = await getAllTasks();
-      // Ensure tasks are sorted for consistent display, especially after reordering
       setTasks(allTasks.sort((a, b) => (a.parentId === b.parentId ? a.createdAt - b.createdAt : 0)));
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -39,12 +38,12 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
 
   const handleLocalTaskChange = () => {
     loadTasks();
-    onTaskChange(); // Notify parent
+    onTaskChange();
   };
 
   const handleDropOnList = async (
     draggedId: string,
-    targetId: string | null, // null if dropping at root or on an item
+    targetId: string | null,
     position: 'before' | 'after' | 'inside' = 'inside',
   ) => {
     try {
@@ -68,7 +67,6 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
 
         if (position === 'inside') {
           newParentId = targetId;
-          // When moving inside, new task should be last among children or have a new timestamp
           const childrenOfTarget = tasks.filter(t => t.parentId === targetId);
           newCreatedAt =
             childrenOfTarget.length > 0 ? Math.max(...childrenOfTarget.map(c => c.createdAt)) + 1000 : Date.now();
@@ -92,7 +90,6 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 : targetTask.createdAt + 1000;
           }
         }
-        // Prevent a task from becoming its own ancestor
         let currentParentId = newParentId;
         while (currentParentId) {
           if (currentParentId === draggedId) {
@@ -144,7 +141,6 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
         className={`min-h-[300px] p-1 rounded-md ${isDragOverRoot && !dragTargetItem ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50' : ''}`}
         onDragOver={e => {
           e.preventDefault();
-          // Only set drag over root if not over a specific item
           if (!dragTargetItem && e.target === listContainerRef.current) {
             setIsDragOverRoot(true);
           }
@@ -155,13 +151,11 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           }
         }}
         onDrop={e => {
-          // Handles dropping onto the root list area
           e.preventDefault();
           e.stopPropagation();
           const draggedId = e.dataTransfer.getData('taskId');
-          // Ensure drop is directly on the list container, not on a child item that didn't handle its own drop
           if (e.target === listContainerRef.current && draggedId) {
-            handleDropOnList(draggedId, null); // null targetId means root
+            handleDropOnList(draggedId, null);
           }
           setIsDragOverRoot(false);
         }}
@@ -205,48 +199,21 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 onTasksChange={handleLocalTaskChange}
                 onDragOver={taskId => {
                   setDragTargetItem(taskId);
-                }} // Let TodoItem signal hover
+                }}
                 dragTarget={dragTargetItem}
               />
             ))}
           </div>
         )}
       </div>
-      {/* Sticky task input at the bottom */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 {/* Adjust left for sidebar width on larger screens */} bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
         <div className="max-w-3xl mx-auto px-4 py-3">
-          {showFullForm ? (
-            <TodoForm
-              onTaskCreated={() => {
-                handleLocalTaskChange();
-                setShowFullForm(false); // Collapse after creation
-              }}
-              startExpanded={true} // Tell TodoForm to start expanded
-            />
-          ) : (
-            <div className="p-1">
-              {' '}
-              {/* Reduced padding for compact quick add */}
-              <form onSubmit={handleQuickAddTask} className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  placeholder="Add a new task..."
-                  className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
-                  value={quickTaskInput}
-                  onChange={e => setQuickTaskInput(e.target.value)}
-                  required
-                  maxLength={100}
-                />
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50"
-                  disabled={!quickTaskInput.trim()}
-                >
-                  Add
-                </button>
-              </form>
-            </div>
-          )}
+          <TodoForm
+            parentId={null}
+            onTaskCreated={() => {
+              handleLocalTaskChange();
+            }}
+          />
         </div>
       </div>
     </div>
