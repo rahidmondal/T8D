@@ -162,8 +162,7 @@ export default function TodoItem({
     return '';
   };
 
-  const isDropTargetInside =
-    isHovering && task.id === dragTarget && dropPosition === 'inside';
+  const isDropTargetInside = isHovering && task.id === dragTarget && dropPosition === 'inside';
 
   if (isEditing) {
     return (
