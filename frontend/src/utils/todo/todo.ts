@@ -10,15 +10,18 @@ import {
   updateTaskInDb,
 } from '../database/database';
 
-const generateTaskHash = (task: Omit<Task, 'hash'>): string => {
+export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
   const content = `${task.id}${task.name}${task.description ?? ''}${task.status}${task.createdAt.toString()}${task.lastModified.toString()}${task.dueDate?.toString() ?? ''}${task.parentId ?? ''}`;
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16);
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
 };
 
 export const createTask = async (name: string, description?: string, parentId: string | null = null): Promise<Task> => {
@@ -36,10 +39,13 @@ export const createTask = async (name: string, description?: string, parentId: s
     parentId,
   };
 
+  const hash = await generateTaskHash({ ...taskWithoutHash, description: taskWithoutHash.description ?? '' });
+
   const task: Task = {
     ...taskWithoutHash,
-    hash: generateTaskHash({ ...taskWithoutHash, description: taskWithoutHash.description ?? '' }),
-  } as Task;
+    description: taskWithoutHash.description ?? '',
+    hash,
+  };
 
   await addTaskToDb(task);
   return task;
@@ -59,7 +65,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
     lastModified: now,
   };
 
-  updatedTask.hash = generateTaskHash(updatedTask);
+  updatedTask.hash = await generateTaskHash(updatedTask);
   await updateTaskInDb(updatedTask);
 
   if (updates.status === TaskStatus.COMPLETED) {
