@@ -1,10 +1,17 @@
 import { Task, TaskStatus } from '@src/models/Task';
 import { v4 as uuidv4 } from 'uuid';
 
-import { addTaskToDb, deleteTaskFromDb, getAllTasksFromDb, getTaskFromDb, updateTaskInDb } from '../database/database';
+import {
+  addTaskToDb,
+  deleteTaskFromDb,
+  getAllTasksFromDb,
+  getTaskFromDb,
+  getTasksByParentFromDb,
+  updateTaskInDb,
+} from '../database/database';
 
 const generateTaskHash = (task: Omit<Task, 'hash'>): string => {
-  const content = `${task.id}${task.name}${task.description || ''}${task.status}${task.createdAt}${task.lastModified}${task.dueDate}${task.parentId}`;
+  const content = `${task.id}${task.name}${task.description ?? ''}${task.status}${task.createdAt.toString()}${task.lastModified.toString()}${task.dueDate?.toString() ?? ''}${task.parentId ?? ''}`;
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const char = content.charCodeAt(i);
@@ -31,8 +38,8 @@ export const createTask = async (name: string, description?: string, parentId: s
 
   const task: Task = {
     ...taskWithoutHash,
-    hash: generateTaskHash(taskWithoutHash),
-  };
+    hash: generateTaskHash({ ...taskWithoutHash, description: taskWithoutHash.description ?? '' }),
+  } as Task;
 
   await addTaskToDb(task);
   return task;
@@ -54,6 +61,13 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
 
   updatedTask.hash = generateTaskHash(updatedTask);
   await updateTaskInDb(updatedTask);
+
+  if (updates.status === TaskStatus.COMPLETED) {
+    const childTasks = await getTasksByParentFromDb(taskId);
+    for (const childTask of childTasks) {
+      await updateTask(childTask.id, { status: TaskStatus.COMPLETED });
+    }
+  }
 };
 
 export const deleteTask = async (taskId: string): Promise<void> => {
@@ -61,6 +75,11 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
   if (!existingTask) {
     throw new Error(`Task with id ${taskId} not found`);
+  }
+
+  const childTasks = await getTasksByParentFromDb(taskId);
+  for (const childTask of childTasks) {
+    await updateTask(childTask.id, { parentId: null });
   }
 
   await deleteTaskFromDb(taskId);
