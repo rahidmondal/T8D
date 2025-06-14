@@ -1,4 +1,4 @@
-import { SideBar } from '@components/SideBar';
+import { SideBar } from '@src/components/Sidebar';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 

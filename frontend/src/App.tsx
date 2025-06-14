@@ -21,7 +21,9 @@ const App: React.FC = () => {
       {/* Hamburger for mobile */}
       <button
         className="lg:hidden fixed top-4 left-4 z-40 bg-sky-600 text-white p-2 rounded"
-        onClick={() => setSidebarOpen(true)}
+        onClick={() => {
+          setSidebarOpen(true);
+        }}
         aria-label="Open sidebar"
       >
         <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
