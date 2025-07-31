@@ -1,0 +1,1 @@
+{"name":"T8D : A To-Do List Application","short_name":"T8D","description":"A To-Do List Application","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","lang":"en","scope":"/T8D/","icons":[{"src":"/t8d192.png","sizes":"192x192","type":"image/png"},{"src":"/t8d512.png","sizes":"512x512","type":"image/png"}]}
