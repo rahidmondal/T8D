@@ -1,0 +1,20 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+
+    environment:
+      - NODE_ENV=production
+
+  # backend: # Uncomment and configure when backend service is ready
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile # Assuming you will have a Dockerfile in ./backend
+  #   ports:
+  #     - "3000:3000" # Adjust port as needed
+  #   environment:
+  #     - NODE_ENV=production
+  # Add other backend configurations like database links, volumes, etc.

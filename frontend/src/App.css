@@ -1,0 +1,48 @@
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.task-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.task-item:hover {
+  transform: translateY(-1px);
+}
+
+@keyframes complete-task {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.complete-task-line {
+  position: absolute;
+  height: 1px;
+  background-color: #6b7280;
+  top: 50%;
+  left: 0;
+  animation: complete-task 0.3s ease-in-out forwards;
+}
