@@ -45,6 +45,13 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             required
             autoFocus={!parentId}
             maxLength={100}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           />
         </div>
         {!isExpanded && (
@@ -74,6 +81,7 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
               className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
               rows={3}
               maxLength={500}
+              tabIndex={0}
             />
           </div>
         )}
@@ -82,6 +90,13 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             type="submit"
             className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || !name.trim()}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           >
             {isSubmitting ? 'Adding...' : 'Add Task'}
           </button>

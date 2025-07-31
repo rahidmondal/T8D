@@ -11,8 +11,9 @@ interface TodoItemProps {
   getChildTasks: (parentId: string) => Task[];
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
   onTasksChange: () => void;
-  onDragOver?: (taskId: string) => void;
+  onDragOver?: ((taskId: string) => void) | undefined;
   dragTarget?: string | null;
+  tabIndex?: number;
 }
 
 export default function TodoItem({
@@ -138,7 +139,7 @@ export default function TodoItem({
     try {
       await updateTask(task.id, {
         name: editName,
-        description: editDescription || undefined, // Send undefined to clear if empty
+        description: editDescription || '', // Ensure description is always a string
       });
       setIsEditing(false);
       onTasksChange();
@@ -231,6 +232,16 @@ export default function TodoItem({
         ${isDragging ? 'opacity-50 border-dashed border-sky-500 dark:border-sky-400' : 'border-slate-300 dark:border-slate-700'}
         ${isDropTargetInside ? 'bg-sky-50 dark:bg-sky-500/20 border-sky-400 dark:border-sky-600' : ''}
         ${getDropIndicatorClass()}`}
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            setIsEditing(true);
+          } else if (e.key === 'Delete') {
+            e.preventDefault();
+            deleteTask(task.id).then(onTasksChange);
+          }
+        }}
       >
         <div className="flex items-center gap-2">
           <input
@@ -258,6 +269,13 @@ export default function TodoItem({
               onClick={startEditing}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  startEditing();
+                }
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -278,6 +296,13 @@ export default function TodoItem({
               onClick={toggleAddForm}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Add subtask"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleAddForm();
+                }
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -341,6 +366,13 @@ export default function TodoItem({
               onClick={handleDelete}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
               title="Delete"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleDelete();
+                }
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

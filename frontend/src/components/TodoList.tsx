@@ -159,6 +159,16 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           }
           setIsDragOverRoot(false);
         }}
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Logic to focus the next task
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Logic to focus the previous task
+          }
+        }}
       >
         {isDragOverRoot && !dragTargetItem && (
           <div className="text-center py-4 text-sky-600 dark:text-sky-300">Drop here to make it a root task</div>
@@ -201,6 +211,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                   setDragTargetItem(taskId);
                 }}
                 dragTarget={dragTargetItem}
+                tabIndex={0}
               />
             ))}
           </div>

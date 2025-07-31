@@ -1,4 +1,5 @@
 import logo from '@src/assets/t8d512.jpg';
+import { useEffect } from 'react';
 
 type SideBarProps = {
   selectedView: string;
@@ -7,6 +8,17 @@ type SideBarProps = {
 };
 
 export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, setSidebarOpen }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === 's') {
+        e.preventDefault();
+        setSidebarOpen && setSidebarOpen((prev: boolean) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setSidebarOpen]);
+
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
       <div className="flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
@@ -38,6 +50,13 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
                 ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectView('tasks');
+              }
+            }}
           >
             <svg
               className="mr-3 h-4 w-4"
@@ -64,6 +83,13 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
                 ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectView('settings');
+              }
+            }}
           >
             <svg
               className="mr-3 h-4 w-4"
