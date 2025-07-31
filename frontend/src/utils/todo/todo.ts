@@ -1,17 +1,27 @@
+import { Task, TaskStatus } from '@src/models/Task';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Task, TaskStatus } from '../../models/Task';
-import { addTaskToDb, deleteTaskFromDb, getAllTasksFromDb, getTaskFromDb, updateTaskInDb } from '../database/database';
+import {
+  addTaskToDb,
+  deleteTaskFromDb,
+  getAllTasksFromDb,
+  getTaskFromDb,
+  getTasksByParentFromDb,
+  updateTaskInDb,
+} from '../database/database';
 
-const generateTaskHash = (task: Omit<Task, 'hash'>): string => {
-  const content = `${task.id}${task.name}${task.description || ''}${task.status}${task.createdAt}${task.lastModified}${task.dueDate}${task.parentId}`;
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16);
+export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
+  const content = `${task.id}${task.name}${task.description ?? ''}${task.status}${task.createdAt.toString()}${task.lastModified.toString()}${task.dueDate?.toString() ?? ''}${task.parentId ?? ''}`;
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
 };
 
 export const createTask = async (name: string, description?: string, parentId: string | null = null): Promise<Task> => {
@@ -29,9 +39,12 @@ export const createTask = async (name: string, description?: string, parentId: s
     parentId,
   };
 
+  const hash = await generateTaskHash({ ...taskWithoutHash, description: taskWithoutHash.description ?? '' });
+
   const task: Task = {
     ...taskWithoutHash,
-    hash: generateTaskHash(taskWithoutHash),
+    description: taskWithoutHash.description ?? '',
+    hash,
   };
 
   await addTaskToDb(task);
@@ -52,8 +65,15 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
     lastModified: now,
   };
 
-  updatedTask.hash = generateTaskHash(updatedTask);
+  updatedTask.hash = await generateTaskHash(updatedTask);
   await updateTaskInDb(updatedTask);
+
+  if (updates.status === TaskStatus.COMPLETED) {
+    const childTasks = await getTasksByParentFromDb(taskId);
+    for (const childTask of childTasks) {
+      await updateTask(childTask.id, { status: TaskStatus.COMPLETED });
+    }
+  }
 };
 
 export const deleteTask = async (taskId: string): Promise<void> => {
@@ -61,6 +81,11 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
   if (!existingTask) {
     throw new Error(`Task with id ${taskId} not found`);
+  }
+
+  const childTasks = await getTasksByParentFromDb(taskId);
+  for (const childTask of childTasks) {
+    await updateTask(childTask.id, { parentId: null });
   }
 
   await deleteTaskFromDb(taskId);

@@ -1,12 +1,11 @@
 import React from 'react';
-import { useTheme } from './ThemeContext'; // Ensure this path is correct
+
+import { useTheme } from '@components/ThemeContext';
 
 const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  console.log('Settings component: Rendered. Theme from context:', theme);
 
   const handleToggleClick = () => {
-    console.log('Settings component: Toggle button clicked.');
     toggleTheme();
   };
 
@@ -20,7 +19,7 @@ const Settings: React.FC = () => {
           <button
             type="button"
             aria-pressed={theme === 'dark'}
-            onClick={handleToggleClick} // Use the new handler with logging
+            onClick={handleToggleClick}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-slate-800 ${
               theme === 'dark' ? 'bg-sky-600' : 'bg-slate-300'
             }`}
@@ -32,9 +31,7 @@ const Settings: React.FC = () => {
             />
           </button>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-          Toggle to switch between light and dark mode.
-        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Toggle to switch between light and dark mode.</p>
       </section>
     </div>
   );

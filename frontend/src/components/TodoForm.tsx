@@ -5,14 +5,12 @@ import { createTask } from '../utils/todo/todo';
 interface TodoFormProps {
   parentId?: string | null;
   onTaskCreated: () => void;
-  // Optional prop to suggest initial state for isExpanded, useful when invoked from "Add task with description"
   startExpanded?: boolean;
 }
 
 export default function TodoForm({ parentId = null, onTaskCreated, startExpanded = false }: TodoFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  // Use startExpanded to set initial state, but allow internal control afterwards
   const [isExpanded, setIsExpanded] = useState(startExpanded);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,53 +23,41 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
       await createTask(name, description || undefined, parentId);
       setName('');
       setDescription('');
-      setIsExpanded(startExpanded || false); // Reset to initial or default if not always expanded
+      setIsExpanded(startExpanded || false);
       onTaskCreated();
     } catch (error) {
       console.error('Error creating task:', error);
-      // Potentially show an error message to the user
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mb-4 p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+    <div className="mb-4 p-2 sm:p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <input
             type="text"
             value={name}
-            onChange={e => {
-              setName(e.target.value);
-            }}
+            onChange={e => setName(e.target.value)}
             placeholder="What needs to be done?"
-            className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
+            className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
             required
-            autoFocus={!parentId} // Autofocus only for root level new task form
+            autoFocus={!parentId}
             maxLength={100}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           />
         </div>
-
-        {isExpanded ? (
-          <div className="mb-3">
-            <textarea
-              value={description}
-              onChange={e => {
-                setDescription(e.target.value);
-              }}
-              placeholder="Add details (optional)"
-              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500"
-              rows={3}
-              maxLength={500}
-            />
-          </div>
-        ) : (
+        {!isExpanded && (
           <button
             type="button"
-            onClick={() => {
-              setIsExpanded(true);
-            }}
+            onClick={() => setIsExpanded(true)}
             className="mb-3 text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm flex items-center gap-1"
           >
             <svg
@@ -86,30 +72,44 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             Add description
           </button>
         )}
-
-        <div className="flex gap-2">
+        {isExpanded && (
+          <div className="mb-3">
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Add details (optional)"
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
+              rows={3}
+              maxLength={500}
+              tabIndex={0}
+            />
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || !name.trim()}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           >
             {isSubmitting ? 'Adding...' : 'Add Task'}
           </button>
-          {/* Show cancel button only if it's an expanded form or has content */}
           {(isExpanded || name || description) && (
             <button
               type="button"
               onClick={() => {
-                // If it's a sub-task form, onTaskCreated might close it.
-                // Otherwise, just clear and collapse.
-                if (parentId) {
-                    onTaskCreated(); // This typically reloads tasks and might hide the form
-                }
+                if (parentId) onTaskCreated();
                 setName('');
                 setDescription('');
                 setIsExpanded(startExpanded || false);
               }}
-              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="w-full sm:w-auto px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               Cancel
             </button>

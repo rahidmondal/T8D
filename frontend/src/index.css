@@ -1,4 +1,5 @@
-@import 'tailwindcss'; /* or @tailwind base; @tailwind components; @tailwind utilities; */
+@import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   font-family:
@@ -13,11 +14,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* color-scheme is managed by adding/removing 'dark' class now */
 }
 
 html {
-  /* For smooth theme transitions */
   transition-property: color, background-color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
@@ -26,17 +25,4 @@ html {
 body {
   margin: 0;
   padding: 0;
-  /* Base background and text color will be applied by Tailwind via App.tsx or html.dark */
-}
-
-/* Remove old color definitions if any */
-/* For example, remove:
-   color-scheme: light;
-   color: #213547;
-   background-color: #f9fafb;
-*/
-
-input::placeholder,
-textarea::placeholder {
-  /* Placeholder color will be handled by Tailwind's dark:placeholder- classes */
 }
