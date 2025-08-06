@@ -9,7 +9,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  base: '/T8D/',
   plugins: [
     react(),
     tailwindcss(),
@@ -23,15 +22,15 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#ffffff',
-        start_url: '/',
+        start_url: '/T8D/',
         icons: [
           {
-            src: '/t8d192.png',
+            src: '/T8D/public/t8d192.png',
             sizes: '192x192',
             type: 'image/png',
-          },
+              },
           {
-            src: '/t8d512.png',
+            src: '/T8D/public/t8d512.png',
             sizes: '512x512',
             type: 'image/png',
           },
@@ -39,7 +38,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
-        navigateFallback: '/index.html',
+        navigateFallback: '/T8D/index.html',
       },
     }),
   ],
