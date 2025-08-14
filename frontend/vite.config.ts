@@ -29,7 +29,7 @@ export default defineConfig({
             src: '/T8D/t8d192.png',
             sizes: '192x192',
             type: 'image/png',
-          },
+              },
           {
             src: '/T8D/t8d512.png',
             sizes: '512x512',

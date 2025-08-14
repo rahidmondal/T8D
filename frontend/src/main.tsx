@@ -15,4 +15,4 @@ if (rootElement) {
       </ThemeProvider>
     </StrictMode>,
   );
-}
+  }
