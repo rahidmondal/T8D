@@ -252,7 +252,7 @@ export default function TodoItem({
           />
 
           <span
-            className={`flex-1 ${
+            className={`flex-1 break-words min w-0 ${
               task.status === TaskStatus.COMPLETED
                 ? 'line-through text-slate-500 dark:text-slate-400'
                 : 'font-medium text-slate-800 dark:text-slate-100'
