@@ -1,5 +1,6 @@
-import logo from '@src/assets/t8d512.jpg';
 import { useEffect } from 'react';
+
+import logo from '@src/assets/t8d512.jpg';
 
 type SideBarProps = {
   selectedView: string;
@@ -16,7 +17,9 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [setSidebarOpen]);
 
   return (
@@ -51,7 +54,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
             tabIndex={0}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onSelectView('tasks');
@@ -84,7 +87,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
             tabIndex={0}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onSelectView('settings');
@@ -113,7 +116,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
 
       <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         {' '}
-        <p>T8D v0.2.3</p>
+        <p>T8D v0.2.5</p>
       </div>
     </div>
   );
