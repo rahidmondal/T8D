@@ -1,7 +1,7 @@
 {
   "name": "t8d-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "T8D Project Monorepo",
   "scripts": {
     "dev": "pnpm -r dev",
