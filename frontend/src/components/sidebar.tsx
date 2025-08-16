@@ -4,8 +4,8 @@ import logo from '@src/assets/t8d512.jpg';
 
 type SideBarProps = {
   selectedView: string;
-  onSelectView: (view: string) => void;
-  setSidebarOpen?: (open: boolean) => void; // Add this prop
+  onSelectView: (_view: string) => void;
+  setSidebarOpen?: (_open: boolean) => void;
 };
 
 export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, setSidebarOpen }) => {
@@ -13,7 +13,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.key === 's') {
         e.preventDefault();
-        setSidebarOpen && setSidebarOpen((prev: boolean) => !prev);
+        if (setSidebarOpen) setSidebarOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -33,7 +33,9 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
       {typeof window !== 'undefined' && window.innerWidth < 1024 && (
         <button
           className="block lg:hidden ml-auto mb-2 p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
-          onClick={() => setSidebarOpen && setSidebarOpen(false)}
+          onClick={() => {
+            if (setSidebarOpen) setSidebarOpen(false);
+          }}
           aria-label="Close sidebar"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
