@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { Task, TaskStatus } from '@src/models/Task';
-import { deleteTask, updateTask } from '@src/utils/todo/todo';
+import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
 
 import TodoForm from './TodoForm';
 
@@ -116,10 +116,13 @@ export default function TodoItem({
 
   const promoteTask = async () => {
     try {
-      await updateTask(task.id, { parentId: null });
+      if (!task.parentId) return;
+      const parentTask = await getTask(task.parentId);
+      const newParentId = parentTask?.parentId ?? null;
+      await updateTask(task.id, { parentId: newParentId });
       onTasksChange();
     } catch (error) {
-      console.error('Error promoting task:', error);
+      console.error(`Error promoting task : ${error}`);
     }
   };
 
@@ -270,7 +273,7 @@ export default function TodoItem({
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
               tabIndex={0}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   startEditing();
@@ -297,7 +300,7 @@ export default function TodoItem({
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Add subtask"
               tabIndex={0}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   toggleAddForm();
@@ -318,7 +321,7 @@ export default function TodoItem({
               <button
                 onClick={promoteTask}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
-                title="Move to root level"
+                title="Promote level"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -367,7 +370,7 @@ export default function TodoItem({
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
               title="Delete"
               tabIndex={0}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   handleDelete();

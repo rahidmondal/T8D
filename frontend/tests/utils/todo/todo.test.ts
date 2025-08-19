@@ -71,4 +71,14 @@ describe('todo utils', () => {
   test('deleteTask should throw if task does not exist', async () => {
     await expect(deleteTask('non-existent-id')).rejects.toThrow('Task with id non-existent-id not found');
   });
+  test('deleteTask should promote child tasks one level up', async () => {
+    const root = await createTask('Root');
+    const parent = await createTask('Parent', undefined, root.id);
+    const child = await createTask('Child', undefined, parent.id);
+
+    await deleteTask(parent.id);
+
+    const updatedChild = await getTask(child.id);
+    expect(updatedChild?.parentId).toBe(root.id);
+  });
 });

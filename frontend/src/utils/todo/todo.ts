@@ -85,7 +85,7 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
   const childTasks = await getTasksByParentFromDb(taskId);
   for (const childTask of childTasks) {
-    await updateTask(childTask.id, { parentId: null });
+    await updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
   }
 
   await deleteTaskFromDb(taskId);
