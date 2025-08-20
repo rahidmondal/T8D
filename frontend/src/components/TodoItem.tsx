@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
@@ -14,6 +14,8 @@ interface TodoItemProps {
   onDragOver?: ((taskId: string) => void) | undefined;
   dragTarget?: string | null;
   tabIndex?: number;
+  expandedState?: Record<string, boolean>;
+  setExpandedState?: (state: Record<string, boolean>) => void;
 }
 
 export default function TodoItem({
@@ -24,8 +26,32 @@ export default function TodoItem({
   onTasksChange,
   onDragOver,
   dragTarget,
+  tabIndex,
+  expandedState,
+  setExpandedState,
 }: TodoItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Use expandedState from parent if provided, else fallback to local state
+  const isExpandedDefault = expandedState ? !!expandedState[task.id] : true;
+  const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
+
+  useEffect(() => {
+    // Sync with parent expandedState if provided
+    if (expandedState && typeof expandedState[task.id] === 'boolean') {
+      setIsExpanded(expandedState[task.id]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedState?.[task.id]]);
+
+  const setExpanded = (expanded: boolean) => {
+    setIsExpanded(expanded);
+    if (setExpandedState) {
+      setExpandedState({
+        ...(expandedState || {}),
+        [task.id]: expanded,
+      });
+    }
+  };
+
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -337,7 +363,7 @@ export default function TodoItem({
             {(childTasks.length > 0 || task.parentId) && ( // Show expand/collapse if it has children or is a child (to allow collapsing empty sub-lists)
               <button
                 onClick={() => {
-                  setIsExpanded(!isExpanded);
+                  setExpanded(!isExpanded);
                 }}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
