@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
 
+import SubtaskCountBadge from './SubtaskCountBadge';
 import TodoForm from './TodoForm';
 
 interface TodoItemProps {
@@ -63,7 +64,6 @@ export default function TodoItem({
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('parentId', task.parentId || 'null');
     setIsDragging(true);
-
     document.body.classList.add('dragging');
   };
 
@@ -173,6 +173,9 @@ export default function TodoItem({
     setIsEditing(false);
   };
 
+  const totalSubtasks = childTasks.length;
+  const completedSubtask = childTasks.filter(task => task.status === TaskStatus.COMPLETED).length;
+
   const getDropIndicatorClass = () => {
     if (!isHovering || task.id !== dragTarget) return '';
     if (dropPosition === 'before') {
@@ -239,7 +242,6 @@ export default function TodoItem({
   return (
     <div className="mb-2 relative">
       {' '}
-      {}
       <div
         ref={itemRef}
         draggable
@@ -276,15 +278,15 @@ export default function TodoItem({
               task.status === TaskStatus.COMPLETED
                 ? 'line-through text-slate-500 dark:text-slate-400'
                 : 'font-medium text-slate-800 dark:text-slate-100'
-            } cursor-pointer`}
+            } cursor-pointer flex items-center gap-2`}
             onClick={toggleAddForm}
           >
             {task.name}
+            <SubtaskCountBadge completed={completedSubtask} total={totalSubtasks} />
           </span>
 
           <div className="flex gap-1">
             {' '}
-            {}
             <button
               onClick={startEditing}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
@@ -351,7 +353,7 @@ export default function TodoItem({
                 </svg>
               </button>
             )}
-            {(childTasks.length > 0 || task.parentId) && ( // Show expand/collapse if it has children or is a child (to allow collapsing empty sub-lists)
+            {(childTasks.length > 0 || task.parentId) && (
               <button
                 onClick={() => {
                   setExpanded(!isExpanded);
@@ -419,7 +421,6 @@ export default function TodoItem({
       {showAddForm && (
         <div className="ml-8 mt-2 mb-2">
           {' '}
-          {}
           <TodoForm
             parentId={task.id}
             onTaskCreated={() => {

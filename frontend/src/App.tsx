@@ -18,7 +18,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 dark:bg-slate-900 lg:flex-row">
-      {/* Hamburger for mobile */}
       <button
         className="lg:hidden fixed top-4 left-4 z-40 bg-sky-600 text-white p-2 rounded"
         onClick={() => {
@@ -31,7 +30,6 @@ const App: React.FC = () => {
         </svg>
       </button>
 
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-800 transition-transform transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
