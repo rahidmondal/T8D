@@ -104,3 +104,12 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 
   return task;
 };
+
+export const loadTasks = (): Task[] => {
+  const tasks = JSON.parse(localStorage.getItem('tasks') || '[]')
+  return tasks
+}
+
+export const saveTasks = (tasks: Task[]) => {
+  localStorage.setItem('tasks', JSON.stringify(tasks))
+}
