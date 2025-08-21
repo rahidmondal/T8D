@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
 
+import SubtaskCountBadge from './SubtaskCountBadge';
 import TodoForm from './TodoForm';
 
 interface TodoItemProps {
@@ -38,25 +39,23 @@ export default function TodoItem({
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('taskId', task.id);
-    e.dataTransfer.setData('parentId', task.parentId || 'null'); // Store parentId for reordering logic
+    e.dataTransfer.setData('parentId', task.parentId || 'null');
     setIsDragging(true);
-    // Optional: Add a class to the body to style the cursor or disable text selection
     document.body.classList.add('dragging');
   };
 
   const handleDragEnd = () => {
     setIsDragging(false);
     document.body.classList.remove('dragging');
-    // Reset hover state for all items if needed, or rely on onDragLeave
     setIsHovering(false);
-    if (onDragOver) onDragOver(''); // Clear drag target
+    if (onDragOver) onDragOver('');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault();
     if (!itemRef.current) return;
 
-    if (onDragOver) onDragOver(task.id); // Signal which item is being hovered over
+    if (onDragOver) onDragOver(task.id);
 
     const rect = itemRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -67,23 +66,21 @@ export default function TodoItem({
     } else if (y > height * 0.75) {
       setDropPosition('after');
     } else {
-      setDropPosition('inside'); // Default to inside if in the middle
+      setDropPosition('inside');
     }
     setIsHovering(true);
   };
 
   const handleDragLeave = () => {
     setIsHovering(false);
-    // Do not clear dragTarget here, as dragOver on another item will set it
   };
 
   const handleDropInternal = async (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent event from bubbling up to parent drop zones
+    e.stopPropagation();
 
     const draggedId = e.dataTransfer.getData('taskId');
     if (draggedId === task.id) {
-      // Prevent dropping onto itself
       setIsHovering(false);
       return;
     }
@@ -104,10 +101,8 @@ export default function TodoItem({
   };
 
   const handleDelete = async () => {
-    // Optional: Add a confirmation dialog here
-    // if (!window.confirm(`Are you sure you want to delete "${task.name}"?`)) return;
     try {
-      await deleteTask(task.id); // This should also delete children recursively if handled by backend/DB
+      await deleteTask(task.id);
       onTasksChange();
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -138,11 +133,11 @@ export default function TodoItem({
 
   const saveEdits = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!editName.trim()) return; // Basic validation
+    if (!editName.trim()) return;
     try {
       await updateTask(task.id, {
         name: editName,
-        description: editDescription || '', // Ensure description is always a string
+        description: editDescription || '',
       });
       setIsEditing(false);
       onTasksChange();
@@ -153,8 +148,10 @@ export default function TodoItem({
 
   const cancelEditing = () => {
     setIsEditing(false);
-    // Optionally reset editName and editDescription if needed, though startEditing re-initializes them
   };
+
+  const totalSubtasks = childTasks.length;
+  const completedSubtask = childTasks.filter(task => task.status === TaskStatus.COMPLETED).length;
 
   const getDropIndicatorClass = () => {
     if (!isHovering || task.id !== dragTarget) return '';
@@ -222,7 +219,6 @@ export default function TodoItem({
   return (
     <div className="mb-2 relative">
       {' '}
-      {/* Added relative for drop indicators */}
       <div
         ref={itemRef}
         draggable
@@ -259,15 +255,15 @@ export default function TodoItem({
               task.status === TaskStatus.COMPLETED
                 ? 'line-through text-slate-500 dark:text-slate-400'
                 : 'font-medium text-slate-800 dark:text-slate-100'
-            } cursor-pointer`}
+            } cursor-pointer flex items-center gap-2`}
             onClick={toggleAddForm}
           >
             {task.name}
+            <SubtaskCountBadge completed={completedSubtask} total={totalSubtasks} />
           </span>
 
           <div className="flex gap-1">
             {' '}
-            {/* Reduced gap for icon buttons */}
             <button
               onClick={startEditing}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
@@ -334,7 +330,7 @@ export default function TodoItem({
                 </svg>
               </button>
             )}
-            {(childTasks.length > 0 || task.parentId) && ( // Show expand/collapse if it has children or is a child (to allow collapsing empty sub-lists)
+            {(childTasks.length > 0 || task.parentId) && (
               <button
                 onClick={() => {
                   setIsExpanded(!isExpanded);
@@ -402,12 +398,11 @@ export default function TodoItem({
       {showAddForm && (
         <div className="ml-8 mt-2 mb-2">
           {' '}
-          {/* Indent sub-task form */}
           <TodoForm
             parentId={task.id}
             onTaskCreated={() => {
               onTasksChange();
-              setShowAddForm(false); // Close form after sub-task creation
+              setShowAddForm(false);
             }}
           />
         </div>
