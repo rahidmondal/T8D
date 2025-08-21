@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import DateTime from '@components/DateTime';
 import Settings from '@components/Settings';
 import TodoList from '@components/TodoList';
 import { SideBar } from '@src/components/Sidebar';
+import { loadTasks } from './utils/todo/todo';
 
 import '@src/App.css';
 
@@ -11,6 +12,11 @@ const App: React.FC = () => {
   const [selectedView, setSelectedView] = useState('tasks');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    setTasks(loadTasks());
+  }, []);
 
   const handleTaskChange = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -18,7 +24,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-100 dark:bg-slate-900 lg:flex-row">
-      {/* Hamburger for mobile */}
       <button
         className="lg:hidden fixed top-4 left-4 z-40 bg-sky-600 text-white p-2 rounded"
         onClick={() => {
@@ -31,7 +36,6 @@ const App: React.FC = () => {
         </svg>
       </button>
 
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-800 transition-transform transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -58,7 +62,7 @@ const App: React.FC = () => {
                 <DateTime />
               </div>
             </header>
-            <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} />
+            <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} tasks={tasks} />
           </div>
         )}
         {selectedView === 'settings' && (

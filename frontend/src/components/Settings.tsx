@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useTheme } from '@components/ThemeContext';
 
+import { Backup } from './Backup';
+
 const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
@@ -33,6 +35,7 @@ const Settings: React.FC = () => {
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Toggle to switch between light and dark mode.</p>
       </section>
+      <Backup />
     </div>
   );
 };
