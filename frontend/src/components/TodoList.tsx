@@ -19,6 +19,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
+  const [collapsedTasks, setCollapsedTasks] = useState<{ [key: string]: boolean }>({});
 
   // Expanded state persisted in localStorage
   const [expandedState, setExpandedState] = useState<Record<string, boolean>>(() => {
@@ -40,6 +41,21 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     // Persist expanded state
     localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify(expandedState));
   }, [expandedState]);
+
+  useEffect(() => {
+    const initializeCollapsedState = (tasks: Task[]) => {
+      const state: { [key: string]: boolean } = {};
+      tasks.forEach(task => {
+        state[task.id] = true;
+        if (task.subtasks) {
+          Object.assign(state, initializeCollapsedState(task.subtasks));
+        }
+      });
+      return state;
+    };
+
+    setCollapsedTasks(initializeCollapsedState(tasks));
+  }, [tasks]);
 
   const loadTasks = async () => {
     setIsLoading(true);
@@ -231,6 +247,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 tabIndex={0}
                 expandedState={expandedState}
                 setExpandedState={setExpandedState}
+                isCollapsed={collapsedTasks[task.id]}
+                onToggleCollapse={() => toggleCollapse(task.id)}
               />
             ))}
           </div>
