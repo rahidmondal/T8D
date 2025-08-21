@@ -281,7 +281,23 @@ export default function TodoItem({
             } cursor-pointer flex items-center gap-2`}
             onClick={toggleAddForm}
           >
-            {task.name}
+            <span
+              className="hover:underline focus:underline outline-none"
+              tabIndex={0}
+              title="Double-click to edit"
+              onDoubleClick={startEditing}
+              onKeyDown={e => {
+                if ((e.key === 'Enter' || e.key === ' ') && document.activeElement === e.currentTarget) {
+                  e.preventDefault();
+                  startEditing();
+                }
+              }}
+              role="button"
+              aria-label="Edit task name"
+              style={{ userSelect: 'text' }}
+            >
+              {task.name}
+            </span>
             <SubtaskCountBadge completed={completedSubtask} total={totalSubtasks} />
           </span>
 
