@@ -118,7 +118,7 @@ export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, se
 
       <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         {' '}
-        <p>T8D v0.2.5</p>
+        <p>T8D v0.3.0</p>
       </div>
     </div>
   );
