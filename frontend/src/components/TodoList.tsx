@@ -11,6 +11,8 @@ interface TodoListProps {
   onTaskChange?: () => void;
 }
 
+const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
+
 export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,11 +20,26 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
 
+  // Expanded state persisted in localStorage
+  const [expandedState, setExpandedState] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(EXPANDED_STATE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const listContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadTasks();
   }, []);
+
+  useEffect(() => {
+    // Persist expanded state
+    localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify(expandedState));
+  }, [expandedState]);
 
   const loadTasks = async () => {
     setIsLoading(true);
@@ -212,6 +229,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 }}
                 dragTarget={dragTargetItem}
                 tabIndex={0}
+                expandedState={expandedState}
+                setExpandedState={setExpandedState}
               />
             ))}
           </div>
