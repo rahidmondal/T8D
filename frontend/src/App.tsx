@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DateTime from '@components/DateTime';
 import Settings from '@components/Settings';
 import TodoList from '@components/TodoList';
-import { SideBar } from '@src/components/Sidebar';
+import { SideBar } from '@components/Sidebar';
 import { loadTasks } from './utils/todo/todo';
 
 import '@src/App.css';
