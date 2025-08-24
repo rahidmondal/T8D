@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 import TodoItem from '@components/TodoItem';
-
-import { Task } from '../models/Task';
-import { createTask, getAllTasks, updateTask } from '../utils/todo/todo';
+import { Task, TaskStatus } from '@src/models/Task';
+import { getAllTasks, updateTask } from '@src/utils/todo/todo';
 
 import TodoForm from './TodoForm';
 
@@ -12,16 +11,23 @@ interface TodoListProps {
 }
 
 const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
+const COMPLETED_SECTION_EXPANDED_KEY = 't8d_completed_expanded';
 
 export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
-  const [quickTaskInput, setQuickTaskInput] = useState('');
   const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
-  const [collapsedTasks, setCollapsedTasks] = useState<{ [key: string]: boolean }>({});
 
-  // Expanded state persisted in localStorage
+  const [showCompleted, setShowCompleted] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(COMPLETED_SECTION_EXPANDED_KEY);
+      return stored ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
+
   const [expandedState, setExpandedState] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem(EXPANDED_STATE_KEY);
@@ -38,30 +44,19 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   }, []);
 
   useEffect(() => {
-    // Persist expanded state
     localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify(expandedState));
   }, [expandedState]);
 
+  // ADDED: This effect persists the collapse state of the "Completed" section.
   useEffect(() => {
-    const initializeCollapsedState = (tasks: Task[]) => {
-      const state: { [key: string]: boolean } = {};
-      tasks.forEach(task => {
-        state[task.id] = true;
-        if (task.subtasks) {
-          Object.assign(state, initializeCollapsedState(task.subtasks));
-        }
-      });
-      return state;
-    };
-
-    setCollapsedTasks(initializeCollapsedState(tasks));
-  }, [tasks]);
+    localStorage.setItem(COMPLETED_SECTION_EXPANDED_KEY, JSON.stringify(showCompleted));
+  }, [showCompleted]);
 
   const loadTasks = async () => {
     setIsLoading(true);
     try {
       const allTasks = await getAllTasks();
-      setTasks(allTasks.sort((a, b) => (a.parentId === b.parentId ? a.createdAt - b.createdAt : 0)));
+      setTasks(allTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
@@ -84,16 +79,12 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       if (!draggedTask) return;
 
       if (targetId === null) {
-        // Dropping at root level
         if (draggedTask.parentId !== null) {
-          // Only update if it's not already a root task
-          await updateTask(draggedId, { parentId: null, createdAt: Date.now() }); // Reset createdAt for new root order
+          await updateTask(draggedId, { parentId: null, createdAt: Date.now() });
         }
       } else {
-        // Dropping on or near another item
         const targetTask = tasks.find(t => t.id === targetId);
-        if (!targetTask) return;
-        if (draggedId === targetId) return; // Cannot drop on itself
+        if (!targetTask || draggedId === targetId) return;
 
         let newParentId = targetTask.parentId;
         let newCreatedAt = targetTask.createdAt;
@@ -104,8 +95,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           newCreatedAt =
             childrenOfTarget.length > 0 ? Math.max(...childrenOfTarget.map(c => c.createdAt)) + 1000 : Date.now();
         } else {
-          // 'before' or 'after'
-          newParentId = targetTask.parentId; // Stays at the same level
+          newParentId = targetTask.parentId;
           const siblings = tasks.filter(t => t.parentId === newParentId).sort((a, b) => a.createdAt - b.createdAt);
           const targetIndex = siblings.findIndex(t => t.id === targetId);
 
@@ -116,13 +106,13 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                   Math.floor((targetTask.createdAt - siblings[targetIndex - 1].createdAt) / 2)
                 : targetTask.createdAt - 1000;
           } else {
-            // 'after'
             newCreatedAt =
               targetIndex < siblings.length - 1
                 ? targetTask.createdAt + Math.floor((siblings[targetIndex + 1].createdAt - targetTask.createdAt) / 2)
                 : targetTask.createdAt + 1000;
           }
         }
+
         let currentParentId = newParentId;
         while (currentParentId) {
           if (currentParentId === draggedId) {
@@ -143,19 +133,16 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     setDragTargetItem(null);
   };
 
-  const handleQuickAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickTaskInput.trim()) return;
-    try {
-      await createTask(quickTaskInput, undefined, null); // Create as root task
-      setQuickTaskInput('');
-      handleLocalTaskChange();
-    } catch (error) {
-      console.error('Error creating quick task:', error);
-    }
-  };
+  const getActiveRootTasks = () =>
+    tasks
+      .filter(task => !task.parentId && task.status !== TaskStatus.COMPLETED)
+      .sort((a, b) => a.createdAt - b.createdAt);
 
-  const getRootTasks = () => tasks.filter(task => !task.parentId).sort((a, b) => a.createdAt - b.createdAt);
+  const getCompletedRootTasks = () =>
+    tasks
+      .filter(task => !task.parentId && task.status === TaskStatus.COMPLETED)
+      .sort((a, b) => a.createdAt - b.createdAt);
+
   const getChildTasks = (parentId: string) =>
     tasks.filter(task => task.parentId === parentId).sort((a, b) => a.createdAt - b.createdAt);
 
@@ -166,6 +153,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       </div>
     );
   }
+
+  const activeRootTasks = getActiveRootTasks();
+  const completedRootTasks = getCompletedRootTasks();
 
   return (
     <div className="max-w-full sm:max-w-3xl mx-auto px-2 sm:px-4 py-3">
@@ -178,10 +168,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
             setIsDragOverRoot(true);
           }
         }}
-        onDragLeave={e => {
-          if (e.target === listContainerRef.current) {
-            setIsDragOverRoot(false);
-          }
+        onDragLeave={() => {
+          setIsDragOverRoot(false);
         }}
         onDrop={e => {
           e.preventDefault();
@@ -192,22 +180,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           }
           setIsDragOverRoot(false);
         }}
-        tabIndex={0}
-        onKeyDown={e => {
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            // Logic to focus the next task
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            // Logic to focus the previous task
-          }
-        }}
       >
-        {isDragOverRoot && !dragTargetItem && (
-          <div className="text-center py-4 text-sky-600 dark:text-sky-300">Drop here to make it a root task</div>
-        )}
-
-        {getRootTasks().length === 0 && !isLoading ? (
+        {activeRootTasks.length === 0 && completedRootTasks.length === 0 && !isLoading ? (
           <div className="text-center py-8">
             <div className="text-slate-400 dark:text-slate-500 mb-2">
               <svg
@@ -226,42 +200,85 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
               </svg>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-lg">No tasks yet</p>
-            <p className="text-slate-400 dark:text-slate-500">
-              Add your first task to get started using the form below.
-            </p>
+            <p className="text-slate-400 dark:text-slate-500">Add your first task to get started.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {getRootTasks().map(task => (
-              <TodoItem
-                key={task.id}
-                task={task}
-                childTasks={getChildTasks(task.id)}
-                getChildTasks={getChildTasks}
-                onDrop={handleDropOnList}
-                onTasksChange={handleLocalTaskChange}
-                onDragOver={taskId => {
-                  setDragTargetItem(taskId);
-                }}
-                dragTarget={dragTargetItem}
-                tabIndex={0}
-                expandedState={expandedState}
-                setExpandedState={setExpandedState}
-                isCollapsed={collapsedTasks[task.id]}
-                onToggleCollapse={() => toggleCollapse(task.id)}
-              />
-            ))}
+          <div>
+            <div className="space-y-3">
+              {activeRootTasks.map(task => (
+                <TodoItem
+                  key={task.id}
+                  task={task}
+                  childTasks={getChildTasks(task.id)}
+                  getChildTasks={getChildTasks}
+                  onDrop={handleDropOnList}
+                  onTasksChange={handleLocalTaskChange}
+                  onDragOver={taskId => {
+                    setDragTargetItem(taskId);
+                  }}
+                  dragTarget={dragTargetItem}
+                  tabIndex={0}
+                  expandedState={expandedState}
+                  setExpandedState={setExpandedState}
+                />
+              ))}
+            </div>
+
+            {completedRootTasks.length > 0 && (
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    setShowCompleted(!showCompleted);
+                  }}
+                  className="flex items-center w-full text-left px-2 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-sky-500"
+                  aria-expanded={showCompleted}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${showCompleted ? 'rotate-180' : 'rotate-0'}`}
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Completed</span>
+                  <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
+                    {completedRootTasks.length}
+                  </span>
+                </button>
+                {showCompleted && (
+                  <div className="space-y-3 mt-3 opacity-70">
+                    {completedRootTasks.map(task => (
+                      <TodoItem
+                        key={task.id}
+                        task={task}
+                        childTasks={getChildTasks(task.id)}
+                        getChildTasks={getChildTasks}
+                        onDrop={handleDropOnList}
+                        onTasksChange={handleLocalTaskChange}
+                        onDragOver={taskId => {
+                          setDragTargetItem(taskId);
+                        }}
+                        dragTarget={dragTargetItem}
+                        tabIndex={0}
+                        expandedState={expandedState}
+                        setExpandedState={setExpandedState}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
       <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
         <div className="max-w-3xl mx-auto px-4 py-3">
-          <TodoForm
-            parentId={null}
-            onTaskCreated={() => {
-              handleLocalTaskChange();
-            }}
-          />
+          <TodoForm parentId={null} onTaskCreated={handleLocalTaskChange} />
         </div>
       </div>
     </div>
