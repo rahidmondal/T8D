@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import DateTime from '@components/DateTime';
 import Settings from '@components/Settings';
 import { SideBar } from '@components/Sidebar';
 import TodoList from '@components/TodoList';
-
-import { loadTasks } from './utils/todo/todo';
 
 import '@src/App.css';
 
@@ -13,11 +11,6 @@ const App: React.FC = () => {
   const [selectedView, setSelectedView] = useState('tasks');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([]);
-
-  useEffect(() => {
-    setTasks(loadTasks());
-  }, []);
 
   const handleTaskChange = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -63,7 +56,7 @@ const App: React.FC = () => {
                 <DateTime />
               </div>
             </header>
-            <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} tasks={tasks} />
+            <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} />
           </div>
         )}
         {selectedView === 'settings' && (
