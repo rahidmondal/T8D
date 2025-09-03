@@ -11,12 +11,16 @@ interface TodoItemProps {
   childTasks: Task[];
   getChildTasks: (parentId: string) => Task[];
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
-  onTasksChange: () => void;
+  onTasksChange: (formIdToFocus?: string | null) => void;
   onDragOver?: ((taskId: string) => void) | undefined;
+  loadTasks: () => Promise<void>;
   dragTarget?: string | null;
   tabIndex?: number;
   expandedState?: Record<string, boolean>;
   setExpandedState?: (state: Record<string, boolean>) => void;
+  activeFormId?: string | null;
+  setActiveFormId?: (id: string | null) => void;
+  registerRef?: (el: HTMLInputElement | null, id: string) => void;
 }
 
 export default function TodoItem({
@@ -26,12 +30,17 @@ export default function TodoItem({
   onDrop,
   onTasksChange,
   onDragOver,
+  loadTasks,
   dragTarget,
   tabIndex,
   expandedState,
   setExpandedState,
+  activeFormId,
+  setActiveFormId,
+  registerRef,
 }: TodoItemProps) {
-  const isExpandedDefault = expandedState ? !!expandedState[task.id] : true;
+  const shouldShowForm = activeFormId === task.id;
+  const isExpandedDefault = expandedState ? Boolean(expandedState[task.id]) : true;
   const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
 
   useEffect(() => {
@@ -52,7 +61,6 @@ export default function TodoItem({
 
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(task.name);
   const [editDescription, setEditDescription] = useState(task.description || '');
@@ -145,7 +153,13 @@ export default function TodoItem({
   };
 
   const toggleAddForm = () => {
-    setShowAddForm(!showAddForm);
+    if (setActiveFormId) {
+      const isCurrentlyActive = activeFormId === task.id;
+      setActiveFormId(isCurrentlyActive ? null : task.id);
+      if (!isCurrentlyActive) {
+        setExpanded(true);
+      }
+    }
   };
 
   const startEditing = () => {
@@ -434,15 +448,19 @@ export default function TodoItem({
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>
         )}
       </div>
-      {showAddForm && (
+      {activeFormId === task.id && (
         <div className="ml-8 mt-2 mb-2">
-          {' '}
           <TodoForm
             parentId={task.id}
             onTaskCreated={() => {
-              onTasksChange();
-              setShowAddForm(false);
+              if (setActiveFormId) {
+                setActiveFormId(task.id);
+              }
+              loadTasks();
             }}
+            isActive={activeFormId === task.id}
+            registerRef={el => registerRef && registerRef(el, task.id)}
+            onCancel={toggleAddForm}
           />
         </div>
       )}
@@ -458,6 +476,9 @@ export default function TodoItem({
               onTasksChange={onTasksChange}
               onDragOver={onDragOver}
               dragTarget={dragTarget}
+              activeFormId={activeFormId}
+              setActiveFormId={setActiveFormId}
+              registerRef={registerRef}
             />
           ))}
         </div>
