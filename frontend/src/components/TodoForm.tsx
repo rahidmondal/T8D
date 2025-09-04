@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { createTask } from '../utils/todo/todo';
 
@@ -6,13 +6,41 @@ interface TodoFormProps {
   parentId?: string | null;
   onTaskCreated: () => void;
   startExpanded?: boolean;
+  isActive?: boolean;
+  registerRef?: (el: HTMLInputElement | null) => void;
+  onCancel?: () => void;
 }
 
-export default function TodoForm({ parentId = null, onTaskCreated, startExpanded = false }: TodoFormProps) {
+export default function TodoForm({
+  parentId = null,
+  onTaskCreated,
+  startExpanded = false,
+  isActive = false,
+  registerRef,
+  onCancel,
+}: TodoFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isExpanded, setIsExpanded] = useState(startExpanded);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (registerRef) {
+      registerRef(inputRef.current);
+    }
+    return () => {
+      if (registerRef) {
+        registerRef(null);
+      }
+    };
+  }, [registerRef]);
+
+  useEffect(() => {
+    if (isActive) {
+      inputRef.current?.focus();
+    }
+  }, [isActive]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +51,10 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
       await createTask(name, description || undefined, parentId);
       setName('');
       setDescription('');
-      setIsExpanded(startExpanded || false);
+      setIsExpanded(startExpanded || Boolean(description));
       onTaskCreated();
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error(`Error Happened During task Creation ${error}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -39,14 +67,16 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
           <input
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setName(e.target.value);
+            }}
             placeholder="What needs to be done?"
             className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
             required
-            autoFocus={!parentId}
+            ref={inputRef}
             maxLength={100}
             tabIndex={0}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 handleSubmit(e);
@@ -57,7 +87,9 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
         {!isExpanded && (
           <button
             type="button"
-            onClick={() => setIsExpanded(true)}
+            onClick={() => {
+              setIsExpanded(true);
+            }}
             className="mb-3 text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm flex items-center gap-1"
           >
             <svg
@@ -76,7 +108,9 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
           <div className="mb-3">
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={e => {
+                setDescription(e.target.value);
+              }}
               placeholder="Add details (optional)"
               className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
               rows={3}
@@ -91,7 +125,7 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || !name.trim()}
             tabIndex={0}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 handleSubmit(e);
@@ -104,10 +138,13 @@ export default function TodoForm({ parentId = null, onTaskCreated, startExpanded
             <button
               type="button"
               onClick={() => {
-                if (parentId) onTaskCreated();
-                setName('');
-                setDescription('');
-                setIsExpanded(startExpanded || false);
+                if (onCancel) {
+                  onCancel();
+                } else {
+                  setName('');
+                  setDescription('');
+                  setIsExpanded(startExpanded || false);
+                }
               }}
               className="w-full sm:w-auto px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >

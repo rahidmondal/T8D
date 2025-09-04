@@ -36,6 +36,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       return {};
     }
   });
+  const [activeFormId, setActiveFormId] = useState<string | null>('root');
+  const formRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const listContainerRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +54,12 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     localStorage.setItem(COMPLETED_SECTION_EXPANDED_KEY, JSON.stringify(showCompleted));
   }, [showCompleted]);
 
+  useEffect(() => {
+    if (activeFormId && formRefs.current[activeFormId]) {
+      formRefs.current[activeFormId].focus();
+    }
+  }, [tasks, activeFormId]);
+
   const loadTasks = async () => {
     setIsLoading(true);
     try {
@@ -63,8 +71,8 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       setIsLoading(false);
     }
   };
-
-  const handleLocalTaskChange = () => {
+  const handleLocalTaskChange = (formIdToFocus: string | null = 'root') => {
+    setActiveFormId(formIdToFocus);
     loadTasks();
     onTaskChange();
   };
@@ -216,10 +224,14 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                   onDragOver={taskId => {
                     setDragTargetItem(taskId);
                   }}
+                  loadTasks={loadTasks}
                   dragTarget={dragTargetItem}
                   tabIndex={0}
                   expandedState={expandedState}
                   setExpandedState={setExpandedState}
+                  activeFormId={activeFormId}
+                  setActiveFormId={setActiveFormId}
+                  registerRef={(el, id) => (formRefs.current[id] = el)}
                 />
               ))}
             </div>
@@ -267,6 +279,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                         tabIndex={0}
                         expandedState={expandedState}
                         setExpandedState={setExpandedState}
+                        activeFormId={activeFormId}
+                        setActiveFormId={setActiveFormId}
+                        registerRef={(el, id) => (formRefs.current[id] = el)}
                       />
                     ))}
                   </div>
@@ -278,7 +293,17 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       </div>
       <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
         <div className="max-w-3xl mx-auto px-4 py-3">
-          <TodoForm parentId={null} onTaskCreated={handleLocalTaskChange} />
+          <TodoForm
+            parentId={null}
+            onTaskCreated={() => {
+              handleLocalTaskChange('root');
+            }}
+            isActive={activeFormId === 'root'}
+            registerRef={el => (formRefs.current['root'] = el)}
+            onCancel={() => {
+              setActiveFormId(null);
+            }}
+          />
         </div>
       </div>
     </div>
