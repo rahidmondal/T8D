@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
@@ -13,7 +13,7 @@ interface TodoItemProps {
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
   onTasksChange: (formIdToFocus?: string | null) => void;
   loadTasks: () => Promise<void>;
-  onDragOver?: ((taskId: string) => void) | undefined;
+  onDragOver?: (taskId: string) => void;
   dragTarget?: string | null;
   tabIndex?: number;
   expandedState?: Record<string, boolean>;
@@ -39,14 +39,14 @@ export default function TodoItem({
   setActiveFormId,
   registerRef,
 }: TodoItemProps) {
-  const isExpandedDefault = expandedState ? Boolean(expandedState[task.id]) : true;
+  const isExpandedDefault = expandedState?.[task.id] ?? true;
   const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
 
   useEffect(() => {
     if (expandedState && typeof expandedState[task.id] === 'boolean') {
       setIsExpanded(expandedState[task.id]);
     }
-  }, [expandedState?.[task.id]]);
+  }, [expandedState, task.id]);
 
   const setExpanded = (expanded: boolean) => {
     setIsExpanded(expanded);
@@ -78,14 +78,14 @@ export default function TodoItem({
     setIsDragging(false);
     document.body.classList.remove('dragging');
     setIsHovering(false);
-    if (onDragOver) onDragOver('');
+    onDragOver?.('');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!itemRef.current) return;
 
-    if (onDragOver) onDragOver(task.id);
+    onDragOver?.(task.id);
 
     const rect = itemRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -105,7 +105,7 @@ export default function TodoItem({
     setIsHovering(false);
   };
 
-  const handleDropInternal = async (e: React.DragEvent) => {
+  const handleDropInternal = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -115,7 +115,7 @@ export default function TodoItem({
       return;
     }
 
-    await onDrop(draggedId, task.id, dropPosition);
+    onDrop(draggedId, task.id, dropPosition);
     setIsHovering(false);
   };
 
@@ -147,7 +147,7 @@ export default function TodoItem({
       await updateTask(task.id, { parentId: newParentId });
       onTasksChange();
     } catch (error) {
-      console.error(`Error promoting task : ${error}`);
+      console.error('Error promoting task:', error);
     }
   };
 
@@ -161,7 +161,8 @@ export default function TodoItem({
     }
   };
 
-  const startEditing = () => {
+  const startEditing = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditName(task.name);
     setEditDescription(task.description || '');
     setIsEditing(true);
@@ -186,14 +187,21 @@ export default function TodoItem({
     setIsEditing(false);
   };
 
+  const handleWrapperDoubleClick = () => {
+    if (childTasks.length > 0) {
+      setExpanded(false);
+    }
+  };
+
   const totalSubtasks = childTasks.length;
-  const completedSubtask = childTasks.filter(task => task.status === TaskStatus.COMPLETED).length;
+  const completedSubtask = childTasks.filter(subtask => subtask.status === TaskStatus.COMPLETED).length;
 
   const getDropIndicatorClass = () => {
     if (!isHovering || task.id !== dragTarget) return '';
     if (dropPosition === 'before') {
       return 'before:absolute before:left-0 before:right-0 before:top-0 before:h-1 before:bg-sky-500 dark:before:bg-sky-400 before:-translate-y-0.5 before:z-10';
-    } else if (dropPosition === 'after') {
+    }
+    if (dropPosition === 'after') {
       return 'after:absolute after:left-0 after:right-0 after:bottom-0 after:h-1 after:bg-sky-500 dark:after:bg-sky-400 after:translate-y-0.5 after:z-10';
     }
     return '';
@@ -205,7 +213,12 @@ export default function TodoItem({
     return (
       <div className="mb-2">
         <div className="p-3 border border-sky-300 dark:border-sky-700 rounded-lg shadow-sm bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100">
-          <form onSubmit={saveEdits} className="space-y-3">
+          <form
+            onSubmit={e => {
+              void saveEdits(e);
+            }}
+            className="space-y-3"
+          >
             <div>
               <input
                 type="text"
@@ -262,6 +275,7 @@ export default function TodoItem({
         onDragLeave={handleDragLeave}
         onDrop={handleDropInternal}
         onDragEnd={handleDragEnd}
+        onDoubleClick={handleWrapperDoubleClick}
         className={`task-item p-3 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 relative
         ${isDragging ? 'opacity-50 border-dashed border-sky-500 dark:border-sky-400' : 'border-slate-300 dark:border-slate-700'}
         ${isDropTargetInside ? 'bg-sky-50 dark:bg-sky-500/20 border-sky-400 dark:border-sky-600' : ''}
@@ -270,10 +284,10 @@ export default function TodoItem({
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            startEditing();
+            startEditing(e);
           } else if (e.key === 'Delete') {
             e.preventDefault();
-            deleteTask(task.id).then(() => {
+            void deleteTask(task.id).then(() => {
               onTasksChange();
             });
           }
@@ -283,7 +297,9 @@ export default function TodoItem({
           <input
             type="checkbox"
             checked={task.status === TaskStatus.COMPLETED}
-            onChange={handleStatusChange}
+            onChange={() => {
+              void handleStatusChange();
+            }}
             className="w-4 h-4 accent-sky-600 dark:accent-sky-500 bg-slate-100 border-slate-300 rounded focus:ring-sky-500 dark:focus:ring-sky-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
           />
 
@@ -299,11 +315,13 @@ export default function TodoItem({
               className="hover:underline focus:underline outline-none"
               tabIndex={0}
               title="Double-click to edit"
-              onDoubleClick={startEditing}
+              onDoubleClick={e => {
+                startEditing(e);
+              }}
               onKeyDown={e => {
-                if ((e.key === 'Enter' || e.key === ' ') && document.activeElement === e.currentTarget) {
+                if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  startEditing();
+                  startEditing(e);
                 }
               }}
               role="button"
@@ -317,14 +335,16 @@ export default function TodoItem({
 
           <div className="flex gap-1">
             <button
-              onClick={startEditing}
+              onClick={e => {
+                startEditing(e);
+              }}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
               tabIndex={0}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  startEditing();
+                  startEditing(e);
                 }
               }}
             >
@@ -367,7 +387,9 @@ export default function TodoItem({
             </button>
             {task.parentId && (
               <button
-                onClick={promoteTask}
+                onClick={() => {
+                  void promoteTask();
+                }}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title="Promote level"
               >
@@ -382,7 +404,7 @@ export default function TodoItem({
                 </svg>
               </button>
             )}
-            {(childTasks.length > 0 || task.parentId) && (
+            {childTasks.length > 0 && (
               <button
                 onClick={() => {
                   setExpanded(!isExpanded);
@@ -414,14 +436,16 @@ export default function TodoItem({
               </button>
             )}
             <button
-              onClick={handleDelete}
+              onClick={() => {
+                void handleDelete();
+              }}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
               title="Delete"
               tabIndex={0}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleDelete();
+                  void handleDelete();
                 }
               }}
             >
@@ -453,12 +477,12 @@ export default function TodoItem({
             parentId={task.id}
             onTaskCreated={async () => {
               await loadTasks();
-              if (setActiveFormId) {
-                setActiveFormId(task.id);
-              }
+              setActiveFormId?.(task.id);
             }}
             isActive={activeFormId === task.id}
-            registerRef={el => registerRef && registerRef(el, task.id)}
+            registerRef={el => {
+              registerRef?.(el, task.id);
+            }}
             onCancel={toggleAddForm}
           />
         </div>
