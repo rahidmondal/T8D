@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import DateTime from '@components/DateTime';
 import Settings from '@components/Settings';
@@ -15,14 +15,37 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isShortcutMenuOpen, setIsShortcutMenuOpen] = useState(false);
 
+  const newTodoFormInputRef = useRef<HTMLInputElement>(null);
+  const todoListRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
-      if (e.key === '?' && !isTyping) {
+      const listContainer = todoListRef.current;
+
+      if (isTyping) {
+        return;
+      }
+
+      if (e.key === '?') {
         e.preventDefault();
         setIsShortcutMenuOpen(prev => !prev);
+      }
+
+      if (e.key === 'n') {
+        e.preventDefault();
+        newTodoFormInputRef.current?.focus();
+      }
+
+      if (
+        (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
+        listContainer &&
+        !listContainer.contains(document.activeElement)
+      ) {
+        e.preventDefault();
+        listContainer.focus();
       }
     };
 
@@ -34,6 +57,10 @@ const App: React.FC = () => {
 
   const handleTaskChange = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const cancelNewTask = () => {
+    newTodoFormInputRef.current?.blur();
   };
 
   return (
@@ -79,13 +106,18 @@ const App: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto px-2 sm:px-4 md:px-6">
               <div className="max-w-full sm:max-w-3xl mx-auto">
-                <TodoList key={refreshTrigger} onTaskChange={handleTaskChange} />
+                <TodoList ref={todoListRef} key={refreshTrigger} onTaskChange={handleTaskChange} />
               </div>
             </div>
 
             <footer className="flex-shrink-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
               <div className="max-w-3xl mx-auto p-2 sm:p-4">
-                <TodoForm parentId={null} onTaskCreated={handleTaskChange} />
+                <TodoForm
+                  ref={newTodoFormInputRef}
+                  parentId={null}
+                  onTaskCreated={handleTaskChange}
+                  onCancel={cancelNewTask}
+                />
               </div>
             </footer>
           </div>

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import TodoItem from '@components/TodoItem';
 import { Task, TaskStatus } from '@src/models/Task';
-import { deleteTask, getAllTasks, updateTask } from '@src/utils/todo/todo';
+import { createTask, deleteTask, getAllTasks, updateTask } from '@src/utils/todo/todo';
 
 interface TodoListProps {
   onTaskChange?: () => void;
@@ -11,11 +11,14 @@ interface TodoListProps {
 const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
 const COMPLETED_SECTION_EXPANDED_KEY = 't8d_completed_expanded';
 
-export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
+const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () => {} }, ref) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
   const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
+
+  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [showCompleted, setShowCompleted] = useState<boolean>(() => {
     try {
@@ -37,11 +40,21 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
   const [activeFormId, setActiveFormId] = useState<string | null>(null);
   const formRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const listContainerRef = useRef<HTMLDivElement>(null);
+  const loadTasks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const allTasks = await getAllTasks();
+      setTasks(allTasks);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void loadTasks();
-  }, []);
+  }, [loadTasks]);
 
   useEffect(() => {
     localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify(expandedState));
@@ -53,25 +66,23 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
 
   useEffect(() => {
     if (activeFormId && formRefs.current[activeFormId]) {
-      formRefs.current[activeFormId].focus();
+      formRefs.current[activeFormId]?.focus();
     }
   }, [tasks, activeFormId]);
 
-  const loadTasks = async () => {
-    setIsLoading(true);
-    try {
-      const allTasks = await getAllTasks();
-      setTasks(allTasks);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (focusedTaskId) {
+      itemRefs.current[focusedTaskId]?.focus();
     }
-  };
-  const handleLocalTaskChange = (formIdToFocus: string | null = 'root') => {
-    setActiveFormId(formIdToFocus);
-    void loadTasks();
-    onTaskChange();
+  }, [focusedTaskId]);
+
+  const handleLocalTaskChange = (newlyCreatedTaskId?: string) => {
+    void loadTasks().then(() => {
+      if (newlyCreatedTaskId) {
+        setFocusedTaskId(newlyCreatedTaskId);
+      }
+    });
+    onTaskChange?.();
   };
 
   const handleDropOnList = async (
@@ -122,7 +133,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
           }
         }
 
-        let currentParentId = newParentId;
+        let currentParentId: string | null = newParentId;
         while (currentParentId) {
           if (currentParentId === draggedId) {
             console.error('Cannot make a task a child of itself or its descendants.');
@@ -141,9 +152,34 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     setIsDragOverRoot(false);
     setDragTargetItem(null);
   };
+
+  const getChildTasks = useCallback(
+    (parentId: string) =>
+      tasks.filter(task => task && task.parentId === parentId).sort((a, b) => a.createdAt - b.createdAt),
+    [tasks],
+  );
+
+  const getActiveRootTasks = useCallback(
+    () =>
+      tasks
+        .filter(task => task && !task.parentId && task.status !== TaskStatus.COMPLETED)
+        .sort((a, b) => a.createdAt - b.createdAt),
+    [tasks],
+  );
+
+  const getCompletedRootTasks = useCallback(
+    () =>
+      tasks
+        .filter(task => task && !task.parentId && task.status === TaskStatus.COMPLETED)
+        .sort((a, b) => a.createdAt - b.createdAt),
+    [tasks],
+  );
+
   const handleDeleteCompleted = async () => {
     const rootTasksToDelete = getCompletedRootTasks();
-    if (rootTasksToDelete.length === 0) return;
+    if (rootTasksToDelete.length === 0) {
+      return;
+    }
 
     try {
       await Promise.all(rootTasksToDelete.map(task => deleteTask(task.id)));
@@ -153,18 +189,124 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
     }
   };
 
-  const getActiveRootTasks = () =>
-    tasks
-      .filter(task => !task.parentId && task.status !== TaskStatus.COMPLETED)
-      .sort((a, b) => a.createdAt - b.createdAt);
+  const visibleTaskIds = useMemo(() => {
+    const visibleIds: string[] = [];
+    const addChildren = (parentId: string) => {
+      const children = getChildTasks(parentId);
+      for (const child of children) {
+        visibleIds.push(child.id);
+        if (expandedState[child.id]) {
+          addChildren(child.id);
+        }
+      }
+    };
 
-  const getCompletedRootTasks = () =>
-    tasks
-      .filter(task => !task.parentId && task.status === TaskStatus.COMPLETED)
-      .sort((a, b) => a.createdAt - b.createdAt);
+    const activeRoots = getActiveRootTasks();
+    for (const task of activeRoots) {
+      visibleIds.push(task.id);
+      if (expandedState[task.id]) {
+        addChildren(task.id);
+      }
+    }
 
-  const getChildTasks = (parentId: string) =>
-    tasks.filter(task => task.parentId === parentId).sort((a, b) => a.createdAt - b.createdAt);
+    if (showCompleted) {
+      const completedRoots = getCompletedRootTasks();
+      for (const task of completedRoots) {
+        visibleIds.push(task.id);
+        if (expandedState[task.id]) {
+          addChildren(task.id);
+        }
+      }
+    }
+
+    return visibleIds;
+  }, [getActiveRootTasks, getCompletedRootTasks, getChildTasks, expandedState, showCompleted]);
+
+  const handleAddSibling = useCallback(
+    async (siblingId: string) => {
+      const siblingTask = tasks.find(t => t.id === siblingId);
+      if (!siblingTask) {
+        return;
+      }
+      const siblings = tasks.filter(t => t.parentId === siblingTask.parentId).sort((a, b) => a.createdAt - b.createdAt);
+      const siblingIndex = siblings.findIndex(t => t.id === siblingId);
+
+      let newCreatedAt;
+      if (siblingIndex === siblings.length - 1) {
+        newCreatedAt = siblingTask.createdAt + 1000;
+      } else {
+        const nextSibling = siblings[siblingIndex + 1];
+        newCreatedAt = siblingTask.createdAt + Math.floor((nextSibling.createdAt - siblingTask.createdAt) / 2);
+      }
+
+      const newTask = await createTask('', undefined, siblingTask.parentId);
+      await updateTask(newTask.id, { createdAt: newCreatedAt });
+      handleLocalTaskChange(newTask.id);
+    },
+    [tasks],
+  );
+
+  const handleIndentTask = useCallback(
+    async (taskId: string) => {
+      if (!visibleTaskIds) {
+        return;
+      }
+      const taskIndex = visibleTaskIds.indexOf(taskId);
+      if (taskIndex < 1) {
+        return;
+      }
+
+      const newParentId = visibleTaskIds[taskIndex - 1];
+      const taskToIndent = tasks.find(t => t.id === taskId);
+      const newParent = tasks.find(t => t.id === newParentId);
+
+      if (!taskToIndent || !newParent || taskToIndent.parentId === newParentId) {
+        return;
+      }
+
+      let currentParentId: string | null = newParent.parentId;
+      while (currentParentId) {
+        if (currentParentId === taskId) {
+          console.error('Cannot make a task a child of its own descendant.');
+          return;
+        }
+        const parentTask = tasks.find(t => t.id === currentParentId);
+        currentParentId = parentTask ? parentTask.parentId : null;
+      }
+
+      await updateTask(taskId, { parentId: newParentId });
+      handleLocalTaskChange(taskId);
+    },
+    [tasks, visibleTaskIds],
+  );
+
+  const handleListKeyDown = (e: React.KeyboardEvent) => {
+    if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+      return;
+    }
+
+    const currentIndex = focusedTaskId ? visibleTaskIds.indexOf(focusedTaskId) : -1;
+    let nextIndex = -1;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      nextIndex = Math.min(currentIndex + 1, visibleTaskIds.length - 1);
+      if (currentIndex === -1 && visibleTaskIds.length > 0) {
+        nextIndex = 0;
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentIndex > 0) {
+        nextIndex = currentIndex - 1;
+      } else {
+        nextIndex = 0;
+      }
+    }
+
+    if (nextIndex !== -1 && nextIndex < visibleTaskIds.length) {
+      setFocusedTaskId(visibleTaskIds[nextIndex]);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -179,11 +321,17 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
 
   return (
     <div
-      ref={listContainerRef}
-      className={`min-h-[300px] p-1 rounded-md ${isDragOverRoot && !dragTargetItem ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50' : ''}`}
+      ref={ref}
+      onKeyDown={handleListKeyDown}
+      tabIndex={-1}
+      className={`min-h-[300px] p-1 rounded-md focus:outline-none ${
+        isDragOverRoot && !dragTargetItem
+          ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50'
+          : ''
+      }`}
       onDragOver={e => {
         e.preventDefault();
-        if (!dragTargetItem && e.target === listContainerRef.current) {
+        if (!dragTargetItem && e.target === ref) {
           setIsDragOverRoot(true);
         }
       }}
@@ -194,7 +342,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
         e.preventDefault();
         e.stopPropagation();
         const draggedId = e.dataTransfer.getData('taskId');
-        if (e.target === listContainerRef.current && draggedId) {
+        if (e.target === ref && draggedId) {
           void handleDropOnList(draggedId, null);
         }
         setIsDragOverRoot(false);
@@ -224,7 +372,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       ) : (
         <div>
           <div className="space-y-3">
-            {activeRootTasks.map(task => (
+            {activeRootTasks.filter(Boolean).map(task => (
               <TodoItem
                 key={task.id}
                 task={task}
@@ -234,17 +382,23 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                   void handleDropOnList(...args);
                 }}
                 onTasksChange={handleLocalTaskChange}
-                onDragOver={taskId => {
-                  setDragTargetItem(taskId);
-                }}
+                onDragOver={setDragTargetItem}
                 loadTasks={loadTasks}
                 dragTarget={dragTargetItem}
-                tabIndex={0}
                 expandedState={expandedState}
                 setExpandedState={setExpandedState}
                 activeFormId={activeFormId}
                 setActiveFormId={setActiveFormId}
-                registerRef={(el, id) => (formRefs.current[id] = el)}
+                registerFormRef={(el, id) => {
+                  formRefs.current[id] = el;
+                }}
+                focusedTaskId={focusedTaskId}
+                setFocusedTaskId={setFocusedTaskId}
+                registerItemRef={(el, id) => {
+                  itemRefs.current[id] = el;
+                }}
+                onAddSibling={handleAddSibling}
+                onIndentTask={handleIndentTask}
               />
             ))}
           </div>
@@ -261,7 +415,9 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${showCompleted ? 'rotate-180' : 'rotate-0'}`}
+                    className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${
+                      showCompleted ? 'rotate-180' : 'rotate-0'
+                    }`}
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -302,7 +458,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
               </div>
               {showCompleted && (
                 <div className="space-y-3 mt-3 opacity-70">
-                  {completedRootTasks.map(task => (
+                  {completedRootTasks.filter(Boolean).map(task => (
                     <TodoItem
                       key={task.id}
                       task={task}
@@ -312,17 +468,23 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
                         void handleDropOnList(...args);
                       }}
                       onTasksChange={handleLocalTaskChange}
-                      onDragOver={taskId => {
-                        setDragTargetItem(taskId);
-                      }}
+                      onDragOver={setDragTargetItem}
                       dragTarget={dragTargetItem}
-                      tabIndex={0}
                       loadTasks={loadTasks}
                       expandedState={expandedState}
                       setExpandedState={setExpandedState}
                       activeFormId={activeFormId}
                       setActiveFormId={setActiveFormId}
-                      registerRef={(el, id) => (formRefs.current[id] = el)}
+                      registerFormRef={(el, id) => {
+                        formRefs.current[id] = el;
+                      }}
+                      focusedTaskId={focusedTaskId}
+                      setFocusedTaskId={setFocusedTaskId}
+                      registerItemRef={(el, id) => {
+                        itemRefs.current[id] = el;
+                      }}
+                      onAddSibling={handleAddSibling}
+                      onIndentTask={handleIndentTask}
                     />
                   ))}
                 </div>
@@ -333,4 +495,7 @@ export default function TodoList({ onTaskChange = () => {} }: TodoListProps) {
       )}
     </div>
   );
-}
+});
+
+TodoList.displayName = 'TodoList';
+export default TodoList;

@@ -15,12 +15,16 @@ interface TodoItemProps {
   loadTasks: () => Promise<void>;
   onDragOver?: (taskId: string) => void;
   dragTarget?: string | null;
-  tabIndex?: number;
   expandedState?: Record<string, boolean>;
   setExpandedState?: (state: Record<string, boolean>) => void;
   activeFormId?: string | null;
   setActiveFormId?: (id: string | null) => void;
-  registerRef?: (el: HTMLInputElement | null, id: string) => void;
+  registerFormRef?: (el: HTMLInputElement | null, id: string) => void;
+  focusedTaskId?: string | null;
+  setFocusedTaskId: (id: string | null) => void;
+  registerItemRef: (el: HTMLDivElement | null, id: string) => void;
+  onAddSibling: (taskId: string) => void;
+  onIndentTask: (taskId: string) => void;
 }
 
 export default function TodoItem({
@@ -32,13 +36,18 @@ export default function TodoItem({
   loadTasks,
   onDragOver,
   dragTarget,
-  tabIndex,
   expandedState,
   setExpandedState,
   activeFormId,
   setActiveFormId,
-  registerRef,
+  registerFormRef,
+  focusedTaskId,
+  setFocusedTaskId,
+  registerItemRef,
+  onAddSibling,
+  onIndentTask,
 }: TodoItemProps) {
+  const isFocused = focusedTaskId === task.id;
   const isExpandedDefault = expandedState?.[task.id] ?? true;
   const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
 
@@ -67,6 +76,13 @@ export default function TodoItem({
 
   const itemRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    registerItemRef(itemRef.current, task.id);
+    return () => {
+      registerItemRef(null, task.id);
+    };
+  }, [task.id, registerItemRef]);
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('parentId', task.parentId || 'null');
@@ -83,10 +99,10 @@ export default function TodoItem({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!itemRef.current) return;
-
+    if (!itemRef.current) {
+      return;
+    }
     onDragOver?.(task.id);
-
     const rect = itemRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
@@ -108,13 +124,11 @@ export default function TodoItem({
   const handleDropInternal = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     const draggedId = e.dataTransfer.getData('taskId');
     if (draggedId === task.id) {
       setIsHovering(false);
       return;
     }
-
     onDrop(draggedId, task.id, dropPosition);
     setIsHovering(false);
   };
@@ -141,7 +155,9 @@ export default function TodoItem({
 
   const promoteTask = async () => {
     try {
-      if (!task.parentId) return;
+      if (!task.parentId) {
+        return;
+      }
       const parentTask = await getTask(task.parentId);
       const newParentId = parentTask?.parentId ?? null;
       await updateTask(task.id, { parentId: newParentId });
@@ -161,16 +177,19 @@ export default function TodoItem({
     }
   };
 
-  const startEditing = (e: React.MouseEvent) => {
+  const startEditing = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     setEditName(task.name);
     setEditDescription(task.description || '');
     setIsEditing(true);
+    setFocusedTaskId(null);
   };
 
   const saveEdits = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!editName.trim()) return;
+    if (!editName.trim()) {
+      return;
+    }
     try {
       await updateTask(task.id, {
         name: editName,
@@ -178,6 +197,7 @@ export default function TodoItem({
       });
       setIsEditing(false);
       onTasksChange();
+      setFocusedTaskId(task.id);
     } catch (error) {
       console.error('Error updating task:', error);
     }
@@ -185,6 +205,7 @@ export default function TodoItem({
 
   const cancelEditing = () => {
     setIsEditing(false);
+    setFocusedTaskId(task.id);
   };
 
   const handleWrapperDoubleClick = () => {
@@ -193,11 +214,73 @@ export default function TodoItem({
     }
   };
 
+  const handleItemKeyDown = (e: React.KeyboardEvent) => {
+    let isHandled = true;
+
+    if (e.key === 'Shift' && e.key === 'Enter') {
+      onAddSibling(task.id);
+    } else {
+      switch (e.key) {
+        case 'Enter': {
+          startEditing(e);
+          break;
+        }
+        case ' ': {
+          void handleStatusChange();
+          break;
+        }
+        case 'a': {
+          toggleAddForm();
+          break;
+        }
+        case 'Delete': {
+          void handleDelete();
+          break;
+        }
+        case 'ArrowLeft': {
+          if (isExpanded) {
+            setExpanded(false);
+          } else if (task.parentId) {
+            setFocusedTaskId(task.parentId);
+          }
+          break;
+        }
+        case 'ArrowRight': {
+          if (!isExpanded && childTasks.length > 0) {
+            setExpanded(true);
+          } else if (childTasks.length > 0) {
+            setFocusedTaskId(childTasks[0].id);
+          }
+          break;
+        }
+        case 'Tab': {
+          if (e.shiftKey) {
+            void promoteTask();
+          } else {
+            onIndentTask(task.id);
+          }
+          break;
+        }
+        default: {
+          isHandled = false;
+          break;
+        }
+      }
+    }
+
+    if (isHandled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   const totalSubtasks = childTasks.length;
   const completedSubtask = childTasks.filter(subtask => subtask.status === TaskStatus.COMPLETED).length;
 
   const getDropIndicatorClass = () => {
-    if (!isHovering || task.id !== dragTarget) return '';
+    if (!isHovering || task.id !== dragTarget) {
+      return '';
+    }
     if (dropPosition === 'before') {
       return 'before:absolute before:left-0 before:right-0 before:top-0 before:h-1 before:bg-sky-500 dark:before:bg-sky-400 before:-translate-y-0.5 before:z-10';
     }
@@ -226,6 +309,11 @@ export default function TodoItem({
                 onChange={e => {
                   setEditName(e.target.value);
                 }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
+                }}
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
                 required
                 maxLength={100}
@@ -237,6 +325,11 @@ export default function TodoItem({
                 value={editDescription}
                 onChange={e => {
                   setEditDescription(e.target.value);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
                 }}
                 placeholder="Description (optional)"
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
@@ -276,22 +369,15 @@ export default function TodoItem({
         onDrop={handleDropInternal}
         onDragEnd={handleDragEnd}
         onDoubleClick={handleWrapperDoubleClick}
-        className={`task-item p-3 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 relative
-        ${isDragging ? 'opacity-50 border-dashed border-sky-500 dark:border-sky-400' : 'border-slate-300 dark:border-slate-700'}
-        ${isDropTargetInside ? 'bg-sky-50 dark:bg-sky-500/20 border-sky-400 dark:border-sky-600' : ''}
-        ${getDropIndicatorClass()}`}
-        tabIndex={tabIndex}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            startEditing(e);
-          } else if (e.key === 'Delete') {
-            e.preventDefault();
-            void deleteTask(task.id).then(() => {
-              onTasksChange();
-            });
-          }
-        }}
+        onKeyDown={handleItemKeyDown}
+        tabIndex={-1}
+        className={`task-item p-3 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 relative focus:outline-none ${
+          isFocused ? 'ring-2 ring-sky-500 dark:ring-sky-400' : ''
+        } ${
+          isDragging
+            ? 'opacity-50 border-dashed border-sky-500 dark:border-sky-400'
+            : 'border-slate-300 dark:border-slate-700'
+        } ${isDropTargetInside ? 'bg-sky-50 dark:bg-sky-500/20 border-sky-400 dark:border-sky-600' : ''} ${getDropIndicatorClass()}`}
       >
         <div className="flex items-center gap-2">
           <input
@@ -302,9 +388,8 @@ export default function TodoItem({
             }}
             className="w-4 h-4 accent-sky-600 dark:accent-sky-500 bg-slate-100 border-slate-300 rounded focus:ring-sky-500 dark:focus:ring-sky-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
           />
-
           <span
-            className={`flex-1 break-words min w-0 ${
+            className={`flex-1 break-words min-w-0 ${
               task.status === TaskStatus.COMPLETED
                 ? 'line-through text-slate-500 dark:text-slate-400'
                 : 'font-medium text-slate-800 dark:text-slate-100'
@@ -313,16 +398,9 @@ export default function TodoItem({
           >
             <span
               className="hover:underline focus:underline outline-none"
-              tabIndex={0}
               title="Double-click to edit"
               onDoubleClick={e => {
                 startEditing(e);
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  startEditing(e);
-                }
               }}
               role="button"
               aria-label="Edit task name"
@@ -332,7 +410,6 @@ export default function TodoItem({
             </span>
             <SubtaskCountBadge completed={completedSubtask} total={totalSubtasks} />
           </span>
-
           <div className="flex gap-1">
             <button
               onClick={e => {
@@ -340,13 +417,7 @@ export default function TodoItem({
               }}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
-              tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  startEditing(e);
-                }
-              }}
+              tabIndex={-1}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -367,13 +438,7 @@ export default function TodoItem({
               onClick={toggleAddForm}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Add subtask"
-              tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleAddForm();
-                }
-              }}
+              tabIndex={-1}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -392,6 +457,7 @@ export default function TodoItem({
                 }}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title="Promote level"
+                tabIndex={-1}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -411,6 +477,7 @@ export default function TodoItem({
                 }}
                 className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
                 title={isExpanded ? 'Collapse' : 'Expand'}
+                tabIndex={-1}
               >
                 {isExpanded ? (
                   <svg
@@ -441,13 +508,7 @@ export default function TodoItem({
               }}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
               title="Delete"
-              tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  void handleDelete();
-                }
-              }}
+              tabIndex={-1}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -480,9 +541,6 @@ export default function TodoItem({
               setActiveFormId?.(task.id);
             }}
             isActive={activeFormId === task.id}
-            registerRef={el => {
-              registerRef?.(el, task.id);
-            }}
             onCancel={toggleAddForm}
           />
         </div>
@@ -502,9 +560,14 @@ export default function TodoItem({
               dragTarget={dragTarget}
               activeFormId={activeFormId}
               setActiveFormId={setActiveFormId}
-              registerRef={registerRef}
+              registerFormRef={registerFormRef}
               expandedState={expandedState}
               setExpandedState={setExpandedState}
+              focusedTaskId={focusedTaskId}
+              setFocusedTaskId={setFocusedTaskId}
+              registerItemRef={registerItemRef}
+              onAddSibling={onAddSibling}
+              onIndentTask={onIndentTask}
             />
           ))}
         </div>
