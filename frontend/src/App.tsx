@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import DateTime from '@components/DateTime';
 import Settings from '@components/Settings';
+import ShortcutMenu from '@components/ShortcutMenu';
 import { SideBar } from '@components/Sidebar';
 import TodoForm from '@components/TodoForm';
 import TodoList from '@components/TodoList';
@@ -12,6 +13,24 @@ const App: React.FC = () => {
   const [selectedView, setSelectedView] = useState('tasks');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isShortcutMenuOpen, setIsShortcutMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === '?' && !isTyping) {
+        e.preventDefault();
+        setIsShortcutMenuOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const handleTaskChange = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -79,6 +98,13 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      <ShortcutMenu
+        isOpen={isShortcutMenuOpen}
+        onClose={() => {
+          setIsShortcutMenuOpen(false);
+        }}
+      />
     </div>
   );
 };
