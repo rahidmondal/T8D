@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 
-import { ThemeProvider } from '@components/ThemeContext';
 import App from '@src/App';
+import { ThemeProvider } from '@src/context/ThemeContext';
 import { createRoot } from 'react-dom/client';
 
 import '@src/index.css';
@@ -15,4 +15,4 @@ if (rootElement) {
       </ThemeProvider>
     </StrictMode>,
   );
-  }
+}

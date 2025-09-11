@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useTheme } from '@components/ThemeContext';
+import { useTheme } from '@src/context/ThemeContext';
 
 import { Backup } from './Backup';
 
