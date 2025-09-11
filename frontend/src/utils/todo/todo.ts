@@ -84,9 +84,15 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   }
 
   const childTasks = await getTasksByParentFromDb(taskId);
-  for (const childTask of childTasks) {
-    await updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
-  }
+  await Promise.all(
+    childTasks.map(async childTask => {
+      if (childTask.status === TaskStatus.COMPLETED) {
+        await deleteTask(childTask.id);
+      } else {
+        await updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
+      }
+    }),
+  );
 
   await deleteTaskFromDb(taskId);
 };
@@ -104,12 +110,3 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 
   return task;
 };
-
-export const loadTasks = (): Task[] => {
-  const tasks = JSON.parse(localStorage.getItem('tasks') || '[]')
-  return tasks
-}
-
-export const saveTasks = (tasks: Task[]) => {
-  localStorage.setItem('tasks', JSON.stringify(tasks))
-}
