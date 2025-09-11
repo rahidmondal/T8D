@@ -1,125 +1,240 @@
-import { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
+import { Cog6ToothIcon, EllipsisVerticalIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import logo from '@src/assets/t8d512.jpg';
+import { useTaskLists } from '@src/Hooks/useTaskLists';
 
-type SideBarProps = {
-  selectedView: string;
-  onSelectView: (_view: string) => void;
-  setSidebarOpen?: (_open: boolean) => void;
-};
+import NewListModal from './NewListModal';
 
-export const SideBar: React.FC<SideBarProps> = ({ selectedView, onSelectView, setSidebarOpen }) => {
+type View = 'todolist' | 'settings';
+
+interface SidebarProps {
+  currentView: View;
+  onNavigate: (view: View) => void;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
+  const { taskLists, activeListId, setActiveListId, addTaskList, removeTaskList, updateTaskList, isLoading } =
+    useTaskLists();
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 's') {
-        e.preventDefault();
-        if (setSidebarOpen) setSidebarOpen(true);
+    if (editingListId && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [editingListId]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [setSidebarOpen]);
+  }, []);
+
+  const handleStartEditing = (listId: string, currentName: string) => {
+    setEditingListId(listId);
+    setEditingValue(currentName);
+    setActiveMenuId(null);
+  };
+
+  const handleCancelEditing = () => {
+    setEditingListId(null);
+    setEditingValue('');
+  };
+
+  const handleSaveEdit = () => {
+    if (
+      editingListId &&
+      editingValue.trim() &&
+      editingValue.trim() !== taskLists.find(l => l.id === editingListId)?.name
+    ) {
+      void updateTaskList(editingListId, { name: editingValue.trim() });
+    }
+    handleCancelEditing();
+  };
+
+  const handleSelectList = (listId: string) => {
+    if (editingListId !== listId) {
+      setActiveListId(listId);
+      onNavigate('todolist');
+    }
+  };
+
+  const handleAddNewList = (name: string) => {
+    void addTaskList(name).then(newList => {
+      if (newList) {
+        onNavigate('todolist');
+      }
+    });
+    setAddModalOpen(false);
+  };
+
+  const handleDeleteList = (listId: string) => {
+    void removeTaskList(listId);
+    setActiveMenuId(null);
+  };
+
+  const toggleMenu = (e: React.MouseEvent, listId: string) => {
+    e.stopPropagation();
+    setActiveMenuId(activeMenuId === listId ? null : listId);
+  };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-      <div className="flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
-        <img src={logo} alt="T8D logo" className="h-16 w-16 mb-2 rounded-lg shadow-md object-cover" />
-        <h1 className="text-xl font-bold">T8D</h1>
-        <p className="text-sm text-sky-100 dark:text-sky-200">Task Manager</p>
-      </div>
+    <>
+      <div className="h-full w-64 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+        {/* Header */}
+        <div className="relative flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
+          <button
+            className="absolute top-2 right-2 p-2 text-sky-200 hover:text-white lg:hidden"
+            onClick={() => {
+              setSidebarOpen(false);
+            }}
+            aria-label="Close sidebar"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+          <img src={logo} alt="T8D logo" className="h-16 w-16 mb-2 rounded-lg shadow-md object-cover" />
+          <h1 className="text-xl font-bold">T8D</h1>
+          <p className="text-sm text-sky-100 dark:text-sky-200">Task Manager</p>
+        </div>
 
-      {typeof window !== 'undefined' && window.innerWidth < 1024 && (
-        <button
-          className="block lg:hidden ml-auto mb-2 p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
-          onClick={() => {
-            if (setSidebarOpen) setSidebarOpen(false);
-          }}
-          aria-label="Close sidebar"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
+        {/* Task Lists */}
+        <div className="p-4 flex-1 overflow-y-auto">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              My Lists
+            </h2>
+            <button
+              onClick={() => {
+                setAddModalOpen(true);
+              }}
+              className="p-1 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors"
+              aria-label="Add new list"
+            >
+              <PlusIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <nav className="space-y-1">
+            {isLoading ? (
+              <p className="text-slate-500 dark:text-slate-400">Loading lists...</p>
+            ) : (
+              taskLists.map(list => (
+                <div
+                  key={list.id}
+                  onDoubleClick={() => {
+                    handleStartEditing(list.id, list.name);
+                  }}
+                  onClick={() => {
+                    handleSelectList(list.id);
+                  }}
+                  className={`relative flex items-center justify-between w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 group cursor-pointer ${
+                    activeListId === list.id && currentView === 'todolist' && !editingListId
+                      ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {editingListId === list.id ? (
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editingValue}
+                      onChange={e => {
+                        setEditingValue(e.target.value);
+                      }}
+                      onBlur={handleSaveEdit}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSaveEdit();
+                        if (e.key === 'Escape') handleCancelEditing();
+                      }}
+                      onClick={e => {
+                        e.stopPropagation();
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500 rounded-sm -m-1 p-1"
+                    />
+                  ) : (
+                    <>
+                      <span className="truncate">{list.name}</span>
+                      <button
+                        onClick={e => {
+                          toggleMenu(e, list.id);
+                        }}
+                        className="p-1 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 lg:opacity-100"
+                        aria-label="List options"
+                      >
+                        <EllipsisVerticalIcon className="h-5 w-5" />
+                      </button>
+                      {activeMenuId === list.id && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 top-full mt-1 z-10 w-32 bg-white dark:bg-slate-900 rounded-md shadow-lg border border-slate-200 dark:border-slate-700"
+                        >
+                          <button
+                            onClick={() => {
+                              handleStartEditing(list.id, list.name);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            Rename
+                          </button>
+                          {taskLists.length > 1 && (
+                            <button
+                              onClick={() => {
+                                handleDeleteList(list.id);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </nav>
+        </div>
 
-      <div className="p-4 flex-1">
-        <nav className="space-y-1">
+        {/* Footer with Settings */}
+        <div className="flex justify-between items-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+          <p>T8D v0.4.1</p>
           <button
             onClick={() => {
-              onSelectView('tasks');
+              onNavigate('settings');
             }}
-            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
-              selectedView === 'tasks'
+            className={`p-1 rounded-full transition-colors ${
+              currentView === 'settings'
                 ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
+                : 'text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400'
             }`}
-            tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectView('tasks');
-              }
-            }}
+            aria-label="Open settings"
           >
-            <svg
-              className="mr-3 h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            My Tasks
+            <Cog6ToothIcon className="h-5 w-5" />
           </button>
-          <button
-            onClick={() => {
-              onSelectView('settings');
-            }}
-            className={`flex items-center w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 ${
-              selectedView === 'settings'
-                ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
-            }`}
-            tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectView('settings');
-              }
-            }}
-          >
-            <svg
-              className="mr-3 h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-          </button>
-        </nav>
+        </div>
       </div>
-
-      <div className="flex justify-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        {' '}
-        <p>T8D v0.3.5</p>
-      </div>
-    </div>
+      <NewListModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setAddModalOpen(false);
+        }}
+        onSave={handleAddNewList}
+      />
+    </>
   );
 };
+
+export default Sidebar;

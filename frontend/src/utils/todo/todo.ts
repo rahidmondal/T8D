@@ -12,9 +12,11 @@ import {
   getAllTaskListsFromDb,
   getAllTasksFromDb,
   getTaskFromDb,
+  getTaskListFromDb,
   getTasksByListIdFromDb,
   getTasksByParentFromDb,
   updateTaskInDb,
+  updateTaskListInDb,
 } from '../database/database';
 
 export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
@@ -50,6 +52,7 @@ export const createTask = async (
     dueDate: null,
     parentId,
     listId,
+    order: 0,
   };
 
   const hash = await generateTaskHash(taskWithoutHash);
@@ -166,6 +169,22 @@ export const deleteTaskList = async (listId: string): Promise<void> => {
   const deletePromises = tasks.map(task => deleteTaskFromDb(task.id));
   await Promise.all(deletePromises);
   await deleteTaskListFromDb(listId);
+};
+
+export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskList, 'id'>>): Promise<TaskList> => {
+  const existingList = await getTaskListFromDb(listId);
+  if (!existingList) {
+    throw new Error(`Task list with id ${listId} not found`);
+  }
+
+  const updatedList: TaskList = {
+    ...existingList,
+    ...updates,
+    lastModified: Date.now(),
+  };
+
+  await updateTaskListInDb(updatedList);
+  return updatedList;
 };
 
 export const deleteAllTaskLists = async (): Promise<void> => {

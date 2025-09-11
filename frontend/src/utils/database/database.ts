@@ -114,6 +114,11 @@ export async function addTaskListToDb(list: TaskList): Promise<string> {
   return list.id;
 }
 
+export async function getTaskListFromDb(id: string): Promise<TaskList | undefined> {
+  const db = await getDB();
+  return db.get('task-lists', id);
+}
+
 // Fetch all TaskLists
 export async function getAllTaskListsFromDb(): Promise<TaskList[]> {
   const db = await getDB();

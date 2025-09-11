@@ -1,27 +1,28 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 
-import { createTask } from '../utils/todo/todo';
+import { createTask } from '@src/utils/todo/todo';
 
 interface TodoFormProps {
-  parentId?: string | null;
-  onTaskCreated: () => void;
-  startExpanded?: boolean;
-  isActive?: boolean;
+  parentId: string | null;
+  taskListId: string;
+  onTaskCreated: (newTaskId: string) => void;
   onCancel?: () => void;
+  startExpanded?: boolean;
+  autoFocus?: boolean;
 }
 
 const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
-  ({ parentId = null, onTaskCreated, startExpanded = false, isActive = false, onCancel }, ref) => {
+  ({ parentId, taskListId, onTaskCreated, onCancel, startExpanded = false, autoFocus = false }, ref) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isExpanded, setIsExpanded] = useState(startExpanded);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-      if (isActive && ref && typeof ref !== 'function') {
-        ref.current?.focus();
+      if (autoFocus && ref && typeof ref !== 'function' && ref.current) {
+        ref.current.focus();
       }
-    }, [isActive, ref]);
+    }, [autoFocus, ref]);
 
     const handleCancel = () => {
       if (onCancel) {
@@ -29,7 +30,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
       } else {
         setName('');
         setDescription('');
-        setIsExpanded(startExpanded || false);
+        setIsExpanded(false);
       }
     };
 
@@ -39,13 +40,18 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
         return;
       }
 
+      if (!taskListId) {
+        console.error('Error: taskListId is missing. Cannot create task.');
+        return;
+      }
+
       setIsSubmitting(true);
       try {
-        await createTask(name, description || undefined, parentId);
+        const newTask = await createTask(name, taskListId, description || undefined, parentId);
         setName('');
         setDescription('');
-        setIsExpanded(startExpanded || Boolean(description));
-        onTaskCreated();
+        setIsExpanded(startExpanded);
+        onTaskCreated(newTask.id);
       } catch (error) {
         console.error('Error Happened During task Creation', error);
       } finally {
@@ -61,10 +67,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
     };
 
     return (
-      <div
-        className="mb-4 p-2 sm:p-4 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-        onKeyDown={handleKeyDown}
-      >
+      <div className="relative" onKeyDown={handleKeyDown}>
         <form
           onSubmit={e => {
             void handleSubmit(e);
@@ -78,10 +81,11 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
               onChange={e => {
                 setName(e.target.value);
               }}
-              placeholder="What needs to be done?"
-              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
+              placeholder={parentId ? 'Add a sub-task' : 'What needs to be done?'}
+              className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
               required
               maxLength={100}
+              autoFocus={autoFocus}
             />
           </div>
           {!isExpanded && (
@@ -112,7 +116,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
                   setDescription(e.target.value);
                 }}
                 placeholder="Add details (optional)"
-                className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-sky-500 dark:focus:border-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700 placeholder-slate-400 dark:placeholder-slate-500 text-base"
+                className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
                 rows={3}
                 maxLength={500}
               />
@@ -124,9 +128,9 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
               className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || !name.trim()}
             >
-              {isSubmitting ? 'Adding...' : 'Add Task'}
+              {isSubmitting ? 'Adding...' : parentId ? 'Add Sub-task' : 'Add Task'}
             </button>
-            {(isExpanded || name || description) && (
+            {(isExpanded || name || description || onCancel) && (
               <button
                 type="button"
                 onClick={handleCancel}
@@ -143,4 +147,5 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
 );
 
 TodoForm.displayName = 'TodoForm';
+
 export default TodoForm;

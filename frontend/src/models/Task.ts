@@ -17,6 +17,7 @@ export interface Task {
   parentId: string | null;
 
   hash: string;
+  order: number;
 
   metadata?: Record<string, string | number | boolean | string[] | null>;
 }

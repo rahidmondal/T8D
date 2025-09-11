@@ -1,8 +1,12 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import TodoItem from '@components/TodoItem';
+import { useTaskLists } from '@src/Hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
-import { createTask, deleteTask, getAllTasks, updateTask } from '@src/utils/todo/todo';
+import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
+
+import DateTime from './DateTime';
+import TodoForm from './TodoForm';
 
 interface TodoListProps {
   onTaskChange?: () => void;
@@ -11,7 +15,8 @@ interface TodoListProps {
 const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
 const COMPLETED_SECTION_EXPANDED_KEY = 't8d_completed_expanded';
 
-const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () => {} }, ref) => {
+const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = () => {} }, ref) => {
+  const { taskLists, activeListId, isLoading: isListLoading } = useTaskLists();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
@@ -19,6 +24,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
 
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
   const [showCompleted, setShowCompleted] = useState<boolean>(() => {
     try {
@@ -37,20 +43,25 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
       return {};
     }
   });
-  const [activeFormId, setActiveFormId] = useState<string | null>(null);
-  const formRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const activeList = useMemo(() => taskLists.find(list => list.id === activeListId), [taskLists, activeListId]);
 
   const loadTasks = useCallback(async () => {
+    if (!activeListId) {
+      setTasks([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
-      const allTasks = await getAllTasks();
-      setTasks(allTasks);
+      const listTasks = await getTasksByList(activeListId);
+      setTasks(listTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeListId]);
 
   useEffect(() => {
     void loadTasks();
@@ -65,12 +76,6 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
   }, [showCompleted]);
 
   useEffect(() => {
-    if (activeFormId && formRefs.current[activeFormId]) {
-      formRefs.current[activeFormId]?.focus();
-    }
-  }, [tasks, activeFormId]);
-
-  useEffect(() => {
     if (focusedTaskId) {
       itemRefs.current[focusedTaskId]?.focus();
     }
@@ -80,6 +85,9 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
     void loadTasks().then(() => {
       if (newlyCreatedTaskId) {
         setFocusedTaskId(newlyCreatedTaskId);
+      } else {
+        // If a root task was created, focus the list container for navigation
+        listContainerRef.current?.focus();
       }
     });
     onTaskChange?.();
@@ -98,7 +106,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
 
       if (targetId === null) {
         if (draggedTask.parentId !== null) {
-          await updateTask(draggedId, { parentId: null, createdAt: Date.now() });
+          await updateTask(draggedId, { parentId: null, order: Date.now() });
         }
       } else {
         const targetTask = tasks.find(t => t.id === targetId);
@@ -107,29 +115,25 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
         }
 
         let newParentId = targetTask.parentId;
-        let newCreatedAt = targetTask.createdAt;
+        let newOrder = targetTask.order;
 
         if (position === 'inside') {
           newParentId = targetId;
           const childrenOfTarget = tasks.filter(t => t.parentId === targetId);
-          newCreatedAt =
-            childrenOfTarget.length > 0 ? Math.max(...childrenOfTarget.map(c => c.createdAt)) + 1000 : Date.now();
+          newOrder = childrenOfTarget.length > 0 ? Math.max(...childrenOfTarget.map(c => c.order)) + 1 : Date.now();
         } else {
           newParentId = targetTask.parentId;
-          const siblings = tasks.filter(t => t.parentId === newParentId).sort((a, b) => a.createdAt - b.createdAt);
+          const siblings = tasks.filter(t => t.parentId === newParentId).sort((a, b) => a.order - b.order);
           const targetIndex = siblings.findIndex(t => t.id === targetId);
 
           if (position === 'before') {
-            newCreatedAt =
-              targetIndex > 0
-                ? siblings[targetIndex - 1].createdAt +
-                  Math.floor((targetTask.createdAt - siblings[targetIndex - 1].createdAt) / 2)
-                : targetTask.createdAt - 1000;
+            newOrder =
+              targetIndex > 0 ? (siblings[targetIndex - 1].order + targetTask.order) / 2 : targetTask.order - 1;
           } else {
-            newCreatedAt =
+            newOrder =
               targetIndex < siblings.length - 1
-                ? targetTask.createdAt + Math.floor((siblings[targetIndex + 1].createdAt - targetTask.createdAt) / 2)
-                : targetTask.createdAt + 1000;
+                ? (targetTask.order + siblings[targetIndex + 1].order) / 2
+                : targetTask.order + 1;
           }
         }
 
@@ -143,7 +147,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
           currentParentId = parentTask ? parentTask.parentId : null;
         }
 
-        await updateTask(draggedId, { parentId: newParentId, createdAt: newCreatedAt });
+        await updateTask(draggedId, { parentId: newParentId, order: newOrder });
       }
       handleLocalTaskChange();
     } catch (error) {
@@ -154,8 +158,8 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
   };
 
   const getChildTasks = useCallback(
-    (parentId: string) =>
-      tasks.filter(task => task && task.parentId === parentId).sort((a, b) => a.createdAt - b.createdAt),
+    (parentId: string | null) =>
+      tasks.filter(task => task && task.parentId === parentId).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -163,7 +167,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
     () =>
       tasks
         .filter(task => task && !task.parentId && task.status !== TaskStatus.COMPLETED)
-        .sort((a, b) => a.createdAt - b.createdAt),
+        .sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -171,7 +175,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
     () =>
       tasks
         .filter(task => task && !task.parentId && task.status === TaskStatus.COMPLETED)
-        .sort((a, b) => a.createdAt - b.createdAt),
+        .sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -224,26 +228,27 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
 
   const handleAddSibling = useCallback(
     async (siblingId: string) => {
+      if (!activeListId) return;
       const siblingTask = tasks.find(t => t.id === siblingId);
       if (!siblingTask) {
         return;
       }
-      const siblings = tasks.filter(t => t.parentId === siblingTask.parentId).sort((a, b) => a.createdAt - b.createdAt);
+      const siblings = tasks.filter(t => t.parentId === siblingTask.parentId).sort((a, b) => a.order - b.order);
       const siblingIndex = siblings.findIndex(t => t.id === siblingId);
 
-      let newCreatedAt;
+      let newOrder;
       if (siblingIndex === siblings.length - 1) {
-        newCreatedAt = siblingTask.createdAt + 1000;
+        newOrder = siblingTask.order + 1;
       } else {
         const nextSibling = siblings[siblingIndex + 1];
-        newCreatedAt = siblingTask.createdAt + Math.floor((nextSibling.createdAt - siblingTask.createdAt) / 2);
+        newOrder = (siblingTask.order + nextSibling.order) / 2;
       }
 
-      const newTask = await createTask('', undefined, siblingTask.parentId);
-      await updateTask(newTask.id, { createdAt: newCreatedAt });
+      const newTask = await createTask('', activeListId, undefined, siblingTask.parentId);
+      await updateTask(newTask.id, { order: newOrder });
       handleLocalTaskChange(newTask.id);
     },
-    [tasks],
+    [tasks, activeListId, handleLocalTaskChange],
   );
 
   const handleIndentTask = useCallback(
@@ -277,7 +282,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
       await updateTask(taskId, { parentId: newParentId });
       handleLocalTaskChange(taskId);
     },
-    [tasks, visibleTaskIds],
+    [tasks, visibleTaskIds, handleLocalTaskChange],
   );
 
   const handleListKeyDown = (e: React.KeyboardEvent) => {
@@ -298,7 +303,7 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
       e.preventDefault();
       if (currentIndex > 0) {
         nextIndex = currentIndex - 1;
-      } else {
+      } else if (visibleTaskIds.length > 0) {
         nextIndex = 0;
       }
     }
@@ -308,12 +313,12 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-16">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-sky-600 dark:border-sky-500"></div>
-      </div>
-    );
+  if (isListLoading) {
+    return <div className="text-center p-8 text-slate-500">Loading Lists...</div>;
+  }
+
+  if (!activeListId || !activeList) {
+    return <div className="text-center p-8 text-slate-500">Select or create a list to get started.</div>;
   }
 
   const activeRootTasks = getActiveRootTasks();
@@ -321,178 +326,184 @@ const TodoList = forwardRef<HTMLDivElement, TodoListProps>(({ onTaskChange = () 
 
   return (
     <div
-      ref={ref}
+      ref={listContainerRef}
       onKeyDown={handleListKeyDown}
       tabIndex={-1}
-      className={`min-h-[300px] p-1 rounded-md focus:outline-none ${
-        isDragOverRoot && !dragTargetItem
-          ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50'
-          : ''
-      }`}
-      onDragOver={e => {
-        e.preventDefault();
-        if (!dragTargetItem && e.target === ref) {
-          setIsDragOverRoot(true);
-        }
-      }}
-      onDragLeave={() => {
-        setIsDragOverRoot(false);
-      }}
-      onDrop={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const draggedId = e.dataTransfer.getData('taskId');
-        if (e.target === ref && draggedId) {
-          void handleDropOnList(draggedId, null);
-        }
-        setIsDragOverRoot(false);
-      }}
+      className="h-full flex flex-col focus:outline-none"
     >
-      {activeRootTasks.length === 0 && completedRootTasks.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="text-slate-400 dark:text-slate-500 mb-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-16 w-16 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg>
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 text-lg">No tasks yet</p>
-          <p className="text-slate-400 dark:text-slate-500">Add your first task to get started.</p>
-        </div>
-      ) : (
-        <div>
-          <div className="space-y-3">
-            {activeRootTasks.filter(Boolean).map(task => (
-              <TodoItem
-                key={task.id}
-                task={task}
-                childTasks={getChildTasks(task.id)}
-                getChildTasks={getChildTasks}
-                onDrop={(...args) => {
-                  void handleDropOnList(...args);
-                }}
-                onTasksChange={handleLocalTaskChange}
-                onDragOver={setDragTargetItem}
-                loadTasks={loadTasks}
-                dragTarget={dragTargetItem}
-                expandedState={expandedState}
-                setExpandedState={setExpandedState}
-                activeFormId={activeFormId}
-                setActiveFormId={setActiveFormId}
-                registerFormRef={(el, id) => {
-                  formRefs.current[id] = el;
-                }}
-                focusedTaskId={focusedTaskId}
-                setFocusedTaskId={setFocusedTaskId}
-                registerItemRef={(el, id) => {
-                  itemRefs.current[id] = el;
-                }}
-                onAddSibling={handleAddSibling}
-                onIndentTask={handleIndentTask}
-              />
-            ))}
-          </div>
+      <header className="flex-shrink-0 mb-4 pt-4 px-4 pl-16 lg:pl-4">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
+        <DateTime />
+      </header>
 
-          {completedRootTasks.length > 0 && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between w-full">
-                <button
-                  onClick={() => {
-                    setShowCompleted(!showCompleted);
-                  }}
-                  className="flex flex-grow items-center text-left px-2 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-sky-500"
-                  aria-expanded={showCompleted}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${
-                      showCompleted ? 'rotate-180' : 'rotate-0'
-                    }`}
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">Completed</span>
-                  <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
-                    {completedRootTasks.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => {
-                    void handleDeleteCompleted();
-                  }}
-                  className="ml-2 p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-red-500"
-                  aria-label="Delete all completed tasks"
-                  title="Clear all completed tasks"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              </div>
-              {showCompleted && (
-                <div className="space-y-3 mt-3 opacity-70">
-                  {completedRootTasks.filter(Boolean).map(task => (
-                    <TodoItem
-                      key={task.id}
-                      task={task}
-                      childTasks={getChildTasks(task.id)}
-                      getChildTasks={getChildTasks}
-                      onDrop={(...args) => {
-                        void handleDropOnList(...args);
-                      }}
-                      onTasksChange={handleLocalTaskChange}
-                      onDragOver={setDragTargetItem}
-                      dragTarget={dragTargetItem}
-                      loadTasks={loadTasks}
-                      expandedState={expandedState}
-                      setExpandedState={setExpandedState}
-                      activeFormId={activeFormId}
-                      setActiveFormId={setActiveFormId}
-                      registerFormRef={(el, id) => {
-                        formRefs.current[id] = el;
-                      }}
-                      focusedTaskId={focusedTaskId}
-                      setFocusedTaskId={setFocusedTaskId}
-                      registerItemRef={(el, id) => {
-                        itemRefs.current[id] = el;
-                      }}
-                      onAddSibling={handleAddSibling}
-                      onIndentTask={handleIndentTask}
-                    />
-                  ))}
-                </div>
-              )}
+      <div
+        className={`flex-grow overflow-y-auto p-4 ${
+          isDragOverRoot && !dragTargetItem
+            ? 'border-2 border-dashed border-sky-400 dark:border-sky-600 bg-sky-50 dark:bg-sky-900/50'
+            : ''
+        }`}
+        onDragOver={e => {
+          e.preventDefault();
+          if (!dragTargetItem) {
+            setIsDragOverRoot(true);
+          }
+        }}
+        onDragLeave={() => {
+          setIsDragOverRoot(false);
+        }}
+        onDrop={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          const draggedId = e.dataTransfer.getData('taskId');
+          if (draggedId) {
+            void handleDropOnList(draggedId, null);
+          }
+          setIsDragOverRoot(false);
+        }}
+      >
+        {isLoading ? (
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-sky-600 dark:border-sky-500"></div>
+          </div>
+        ) : activeRootTasks.length === 0 && completedRootTasks.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-slate-400 dark:text-slate-500 mb-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16 mx-auto"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                />
+              </svg>
             </div>
-          )}
-        </div>
-      )}
+            <p className="text-slate-500 dark:text-slate-400 text-lg">No tasks yet</p>
+            <p className="text-slate-400 dark:text-slate-500">Add your first task to get started.</p>
+          </div>
+        ) : (
+          <div>
+            <div className="space-y-3">
+              {activeRootTasks.filter(Boolean).map(task => (
+                <TodoItem
+                  key={task.id}
+                  task={task}
+                  childTasks={getChildTasks(task.id)}
+                  getChildTasks={getChildTasks}
+                  onDrop={(...args) => {
+                    void handleDropOnList(...args);
+                  }}
+                  onTasksChange={handleLocalTaskChange}
+                  onDragOver={setDragTargetItem}
+                  loadTasks={loadTasks}
+                  dragTarget={dragTargetItem}
+                  expandedState={expandedState}
+                  setExpandedState={setExpandedState}
+                  focusedTaskId={focusedTaskId}
+                  setFocusedTaskId={setFocusedTaskId}
+                  registerItemRef={(el, id) => {
+                    itemRefs.current[id] = el;
+                  }}
+                  onAddSibling={handleAddSibling}
+                  onIndentTask={handleIndentTask}
+                />
+              ))}
+            </div>
+
+            {completedRootTasks.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between w-full">
+                  <button
+                    onClick={() => {
+                      setShowCompleted(!showCompleted);
+                    }}
+                    className="flex flex-grow items-center text-left px-2 py-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-sky-500"
+                    aria-expanded={showCompleted}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${
+                        showCompleted ? 'rotate-180' : 'rotate-0'
+                      }`}
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Completed</span>
+                    <span className="ml-2 text-sm font-normal text-slate-400 dark:text-slate-500">
+                      {completedRootTasks.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      void handleDeleteCompleted();
+                    }}
+                    className="ml-2 p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-red-500"
+                    aria-label="Delete all completed tasks"
+                    title="Clear all completed tasks"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {showCompleted && (
+                  <div className="space-y-3 mt-3 opacity-70">
+                    {completedRootTasks.filter(Boolean).map(task => (
+                      <TodoItem
+                        key={task.id}
+                        task={task}
+                        childTasks={getChildTasks(task.id)}
+                        getChildTasks={getChildTasks}
+                        onDrop={(...args) => {
+                          void handleDropOnList(...args);
+                        }}
+                        onTasksChange={handleLocalTaskChange}
+                        onDragOver={setDragTargetItem}
+                        dragTarget={dragTargetItem}
+                        loadTasks={loadTasks}
+                        expandedState={expandedState}
+                        setExpandedState={setExpandedState}
+                        focusedTaskId={focusedTaskId}
+                        setFocusedTaskId={setFocusedTaskId}
+                        registerItemRef={(el, id) => {
+                          itemRefs.current[id] = el;
+                        }}
+                        onAddSibling={handleAddSibling}
+                        onIndentTask={handleIndentTask}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+        <TodoForm ref={ref} taskListId={activeListId} parentId={null} onTaskCreated={handleLocalTaskChange} />
+      </div>
     </div>
   );
 });
