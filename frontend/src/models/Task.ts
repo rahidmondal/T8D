@@ -1,7 +1,7 @@
+/* eslint-disable no-unused-vars */
 export enum TaskStatus {
   NOT_COMPLETED = 'not-completed',
   COMPLETED = 'completed',
-  WORKING = 'working',
 }
 
 export interface Task {
@@ -12,6 +12,7 @@ export interface Task {
   createdAt: number;
   lastModified: number;
   dueDate: number | null;
+  listId: string;
 
   parentId: string | null;
 
