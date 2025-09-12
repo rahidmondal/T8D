@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import { useTaskLists } from '@src/Hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
 
@@ -9,17 +10,14 @@ import TodoForm from './TodoForm';
 interface TodoItemProps {
   task: Task;
   childTasks: Task[];
-  getChildTasks: (parentId: string) => Task[];
+  getChildTasks: (parentId: string | null) => Task[];
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
   onTasksChange: (formIdToFocus?: string | null) => void;
   loadTasks: () => Promise<void>;
-  onDragOver?: (taskId: string) => void;
+  onDragOver?: (taskId: string | null) => void;
   dragTarget?: string | null;
   expandedState?: Record<string, boolean>;
   setExpandedState?: (state: Record<string, boolean>) => void;
-  activeFormId?: string | null;
-  setActiveFormId?: (id: string | null) => void;
-  registerFormRef?: (el: HTMLInputElement | null, id: string) => void;
   focusedTaskId?: string | null;
   setFocusedTaskId: (id: string | null) => void;
   registerItemRef: (el: HTMLDivElement | null, id: string) => void;
@@ -38,18 +36,17 @@ export default function TodoItem({
   dragTarget,
   expandedState,
   setExpandedState,
-  activeFormId,
-  setActiveFormId,
-  registerFormRef,
   focusedTaskId,
   setFocusedTaskId,
   registerItemRef,
   onAddSibling,
   onIndentTask,
 }: TodoItemProps) {
+  const { activeListId } = useTaskLists();
   const isFocused = focusedTaskId === task.id;
   const isExpandedDefault = expandedState?.[task.id] ?? true;
   const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     if (expandedState && typeof expandedState[task.id] === 'boolean') {
@@ -94,7 +91,7 @@ export default function TodoItem({
     setIsDragging(false);
     document.body.classList.remove('dragging');
     setIsHovering(false);
-    onDragOver?.('');
+    onDragOver?.(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -161,19 +158,16 @@ export default function TodoItem({
       const parentTask = await getTask(task.parentId);
       const newParentId = parentTask?.parentId ?? null;
       await updateTask(task.id, { parentId: newParentId });
-      onTasksChange();
+      onTasksChange(task.id);
     } catch (error) {
       console.error('Error promoting task:', error);
     }
   };
 
   const toggleAddForm = () => {
-    if (setActiveFormId) {
-      const isCurrentlyActive = activeFormId === task.id;
-      setActiveFormId(isCurrentlyActive ? null : task.id);
-      if (!isCurrentlyActive) {
-        setExpanded(true);
-      }
+    setShowAddForm(!showAddForm);
+    if (!showAddForm) {
+      setExpanded(true);
     }
   };
 
@@ -210,14 +204,14 @@ export default function TodoItem({
 
   const handleWrapperDoubleClick = () => {
     if (childTasks.length > 0) {
-      setExpanded(false);
+      setExpanded(!isExpanded);
     }
   };
 
   const handleItemKeyDown = (e: React.KeyboardEvent) => {
     let isHandled = true;
 
-    if (e.key === 'Shift' && e.key === 'Enter') {
+    if (e.shiftKey && e.key === 'Enter') {
       onAddSibling(task.id);
     } else {
       switch (e.key) {
@@ -400,6 +394,7 @@ export default function TodoItem({
               className="hover:underline focus:underline outline-none"
               title="Double-click to edit"
               onDoubleClick={e => {
+                e.stopPropagation();
                 startEditing(e);
               }}
               role="button"
@@ -532,16 +527,20 @@ export default function TodoItem({
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>
         )}
       </div>
-      {activeFormId === task.id && (
+      {showAddForm && activeListId && (
         <div className="ml-8 mt-2 mb-2">
           <TodoForm
+            taskListId={activeListId}
             parentId={task.id}
-            onTaskCreated={async () => {
-              await loadTasks();
-              setActiveFormId?.(task.id);
+            onTaskCreated={newTaskId => {
+              setShowAddForm(false);
+              onTasksChange(newTaskId);
             }}
-            isActive={activeFormId === task.id}
-            onCancel={toggleAddForm}
+            onCancel={() => {
+              setShowAddForm(false);
+              setFocusedTaskId(task.id);
+            }}
+            autoFocus
           />
         </div>
       )}
@@ -558,9 +557,6 @@ export default function TodoItem({
               loadTasks={loadTasks}
               onDragOver={onDragOver}
               dragTarget={dragTarget}
-              activeFormId={activeFormId}
-              setActiveFormId={setActiveFormId}
-              registerFormRef={registerFormRef}
               expandedState={expandedState}
               setExpandedState={setExpandedState}
               focusedTaskId={focusedTaskId}
