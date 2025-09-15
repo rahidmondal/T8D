@@ -38,6 +38,7 @@ export const createTask = async (
   listId: string,
   description?: string,
   parentId: string | null = null,
+  order?: number,
 ): Promise<Task> => {
   const now = Date.now();
   const taskId = uuidv4();
@@ -52,7 +53,7 @@ export const createTask = async (
     dueDate: null,
     parentId,
     listId,
-    order: 0,
+    order: order ?? now,
   };
 
   const hash = await generateTaskHash(taskWithoutHash);
