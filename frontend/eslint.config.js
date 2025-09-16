@@ -30,7 +30,7 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-implicit-coercion': 'warn',
       'consistent-return': 'warn',
       'default-case': 'warn',
