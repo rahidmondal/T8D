@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { Cog6ToothIcon, EllipsisVerticalIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import logo from '@src/assets/t8d512.jpg';
-import { useTaskLists } from '@src/Hooks/useTaskLists';
+import { useTaskLists } from '@src/hooks/useTaskLists';
 
 import NewListModal from './NewListModal';
 

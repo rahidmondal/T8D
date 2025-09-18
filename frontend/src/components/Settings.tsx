@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useTheme } from '@src/context/ThemeContext';
+import { useTheme } from '@src/hooks/useTheme';
 
 import { Backup } from './Backup';
 
