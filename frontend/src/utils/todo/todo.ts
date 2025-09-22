@@ -19,18 +19,32 @@ import {
   updateTaskListInDb,
 } from '../database/database';
 
-export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
-  const content = `${task.id}${task.name}${task.description ?? ''}${task.status}${task.createdAt.toString()}${task.lastModified.toString()}${task.dueDate?.toString() ?? ''}${task.parentId ?? ''}${task.listId}`;
-
+const generateHash = async (dataArray: (string | number | null | undefined)[]): Promise<string> => {
+  const content = dataArray.map(item => item?.toString() ?? '').join('|');
   const encoder = new TextEncoder();
   const data = encoder.encode(content);
 
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
 
   return hashHex;
+};
+
+export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
+  const dataToHash = [
+    task.id,
+    task.name,
+    task.description ?? '',
+    task.status,
+    task.createdAt.toString(),
+    task.lastModified.toString(),
+    task.dueDate?.toString() ?? '',
+    task.parentId ?? '',
+    task.listId,
+  ];
+
+  return generateHash(dataToHash);
 };
 
 export const createTask = async (
@@ -134,12 +148,9 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 // --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
-  const content = `${list.id}${list.name}${list.description ?? ''}${list.lastModified.toString()}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString()];
+
+  return generateHash(dataToHash);
 };
 
 export const createTaskList = async (name: string, description?: string): Promise<TaskList> => {
