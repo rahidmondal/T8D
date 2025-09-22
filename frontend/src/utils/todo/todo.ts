@@ -88,9 +88,8 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
 
   if (updates.status === TaskStatus.COMPLETED) {
     const childTasks = await getTasksByParentFromDb(taskId);
-    for (const childTask of childTasks) {
-      await updateTask(childTask.id, { status: TaskStatus.COMPLETED });
-    }
+    const updatePromises = childTasks.map(childTask => updateTask(childTask.id, { status: TaskStatus.COMPLETED }));
+    await Promise.all(updatePromises);
   }
 };
 
@@ -102,14 +101,14 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   }
 
   const childTasks = await getTasksByParentFromDb(taskId);
-  await Promise.all(
-    childTasks.map(childTask => {
-      if (childTask.status === TaskStatus.COMPLETED) {
-        return deleteTask(childTask.id);
-      }
-      return updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
-    }),
-  );
+  const childTasksDeletePromises = childTasks.map(childTask => {
+    if (childTask.status === TaskStatus.COMPLETED) {
+      return deleteTask(childTask.id);
+    }
+    return updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
+  });
+
+  await Promise.all(childTasksDeletePromises);
 
   await deleteTaskFromDb(taskId);
 };
