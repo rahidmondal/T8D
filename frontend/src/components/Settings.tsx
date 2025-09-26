@@ -1,8 +1,7 @@
 import React from 'react';
 
+import { Backup } from '@src/components/Backup';
 import { useTheme } from '@src/hooks/useTheme';
-
-import { Backup } from './Backup';
 
 const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();

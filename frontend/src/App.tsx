@@ -2,12 +2,12 @@ import './App.css';
 
 import { useEffect, useRef, useState } from 'react';
 
-import TodoList from '@components/TodoList';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import Settings from '@src/components/Settings';
 import ShortcutMenu from '@src/components/ShortcutMenu';
 import Sidebar from '@src/components/Sidebar';
 import { TaskListProvider } from '@src/components/TaskListProvider';
+import TodoList from '@src/components/TodoList';
 
 type View = 'todolist' | 'settings';
 
