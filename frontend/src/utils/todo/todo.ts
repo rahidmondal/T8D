@@ -148,7 +148,7 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 // --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
-  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString()];
+  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString(), list.order.toString()];
 
   return generateHash(dataToHash);
 };
@@ -162,6 +162,7 @@ export const createTaskList = async (name: string, description?: string): Promis
     name,
     description: description ?? '',
     lastModified: now,
+    order: now,
   };
 
   const hash = await generateTaskListHash(listWithoutHash);

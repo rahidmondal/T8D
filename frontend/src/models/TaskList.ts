@@ -4,4 +4,5 @@ export interface TaskList {
   description?: string;
   lastModified: number;
   hash: string;
+  order: number;
 }

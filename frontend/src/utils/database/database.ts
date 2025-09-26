@@ -9,18 +9,21 @@ interface T8DDatabase extends DBSchema {
     indexes: {
       'by-status': TaskStatus;
       'by-parent': string;
-      'by-due-date': number;
       'by-list-id': string;
+      'by-due-date': number; // Removed in version 3
     };
   };
   'task-lists': {
     key: string;
     value: TaskList;
+    indexes: {
+      'by-order': number;
+    };
   };
 }
 
 const DB_NAME = 't8d-db1';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export async function getDB() {
   const dbPromise = await openDB<T8DDatabase>(DB_NAME, DB_VERSION, {
@@ -33,11 +36,20 @@ export async function getDB() {
         taskStore.createIndex('by-due-date', 'dueDate');
       }
       if (oldVersion < 2) {
-        // Create Object Store for task lists
         db.createObjectStore('task-lists', { keyPath: 'id' });
-        // Add new index to tasks store
+
         const taskStore = tx.objectStore('tasks');
         taskStore.createIndex('by-list-id', 'listId');
+      }
+      if (oldVersion < 3) {
+        const taskStore = tx.objectStore('tasks');
+
+        if (taskStore.indexNames.contains('by-due-date')) {
+          taskStore.deleteIndex('by-due-date');
+        }
+
+        const listStore = tx.objectStore('task-lists');
+        listStore.createIndex('by-order', 'order');
       }
     },
   });
@@ -122,7 +134,7 @@ export async function getTaskListFromDb(id: string): Promise<TaskList | undefine
 // Fetch all TaskLists
 export async function getAllTaskListsFromDb(): Promise<TaskList[]> {
   const db = await getDB();
-  return db.getAll('task-lists');
+  return db.getAllFromIndex('task-lists', 'by-order');
 }
 
 // Update TaskList

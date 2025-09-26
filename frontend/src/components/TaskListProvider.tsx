@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { TaskListContext } from '@src/context/TaskListContext';
 import { TaskList } from '@src/models/TaskList';
@@ -11,42 +11,40 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
   const [activeListId, setActiveListIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const initializeLists = async () => {
-      setIsLoading(true);
-      try {
-        let lists = await getAllTaskLists();
-        let currentActiveId = null;
+  const initializeLists = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let lists = await getAllTaskLists();
+      let currentActiveId = null;
 
-        // If no lists exist in the DB, create a default one.
-        if (lists.length === 0) {
-          const defaultList = await createTaskList('Default List');
-          lists = [defaultList];
-          currentActiveId = defaultList.id;
+      if (lists.length === 0) {
+        const defaultList = await createTaskList('Default List');
+        lists = [defaultList];
+        currentActiveId = defaultList.id;
+      } else {
+        const lastActiveId = localStorage.getItem(LAST_ACTIVE_LIST_KEY);
+        if (lastActiveId && lists.some(list => list.id === lastActiveId)) {
+          currentActiveId = lastActiveId;
         } else {
-          // If lists exist, determine the active one.
-          const lastActiveId = localStorage.getItem(LAST_ACTIVE_LIST_KEY);
-          if (lastActiveId && lists.some(list => list.id === lastActiveId)) {
-            currentActiveId = lastActiveId;
-          } else {
-            currentActiveId = lists[0].id;
-          }
+          currentActiveId = lists[0].id;
         }
-
-        setTaskLists(lists);
-        if (currentActiveId) {
-          setActiveListIdState(currentActiveId);
-          localStorage.setItem(LAST_ACTIVE_LIST_KEY, currentActiveId);
-        }
-      } catch (error) {
-        console.error('Failed to initialize task lists:', error);
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    void initializeLists();
+      setTaskLists(lists);
+      if (currentActiveId) {
+        setActiveListIdState(currentActiveId);
+        localStorage.setItem(LAST_ACTIVE_LIST_KEY, currentActiveId);
+      }
+    } catch (error: unknown) {
+      console.error('Failed to initialize task lists:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void initializeLists();
+  }, [initializeLists]);
 
   const setActiveListId = (listId: string) => {
     setActiveListIdState(listId);
@@ -55,14 +53,13 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
 
   const addTaskList = async (name: string) => {
     const newList = await createTaskList(name);
-    setTaskLists(prev => [...prev, newList]);
-    setActiveListId(newList.id);
+    await initializeLists();
     return newList;
   };
 
   const handleUpdateTaskList = async (listId: string, updates: Partial<TaskList>) => {
-    const updatedList = await updateTaskList(listId, updates);
-    setTaskLists(prev => prev.map(list => (list.id === listId ? updatedList : list)));
+    await updateTaskList(listId, updates);
+    await initializeLists();
   };
 
   const removeTaskList = async (listId: string) => {
@@ -71,11 +68,10 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     await deleteTaskList(listId);
-    const remainingLists = taskLists.filter(list => list.id !== listId);
-    setTaskLists(remainingLists);
+    await initializeLists();
 
-    // If the deleted list was the active one, switch to another list
     if (activeListId === listId) {
+      const remainingLists = taskLists.filter(list => list.id !== listId);
       const newActiveId = remainingLists[0]?.id ?? null;
       if (newActiveId) {
         setActiveListId(newActiveId);
