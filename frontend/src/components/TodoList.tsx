@@ -1,12 +1,11 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import DateTime from '@src/components/DateTime';
+import TodoForm from '@src/components/TodoForm';
 import TodoItem from '@src/components/TodoItem';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
-
-import DateTime from './DateTime';
-import TodoForm from './TodoForm';
 
 interface TodoListProps {
   onTaskChange?: () => void;
@@ -49,7 +48,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   const loadTasks = useCallback(async () => {
     if (!activeListId) {
       setTasks([]);
-      setIsLoading(false);
+      if (!isListLoading) setIsLoading(false);
       return;
     }
     setIsLoading(true);
@@ -61,7 +60,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     } finally {
       setIsLoading(false);
     }
-  }, [activeListId]);
+  }, [activeListId, isListLoading]);
 
   useEffect(() => {
     void loadTasks();
@@ -81,17 +80,19 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     }
   }, [focusedTaskId]);
 
-  const handleLocalTaskChange = (newlyCreatedTaskId?: string) => {
-    void loadTasks().then(() => {
-      if (newlyCreatedTaskId) {
-        setFocusedTaskId(newlyCreatedTaskId);
-      } else {
-        // If a root task was created, focus the list container for navigation
-        listContainerRef.current?.focus();
-      }
-    });
-    onTaskChange?.();
-  };
+  const handleLocalTaskChange = useCallback(
+    (newlyCreatedTaskId?: string) => {
+      void loadTasks().then(() => {
+        if (newlyCreatedTaskId) {
+          setFocusedTaskId(newlyCreatedTaskId.parentId ? newlyCreatedTaskId : null);
+        } else {
+          listContainerRef.current?.focus();
+        }
+      });
+      onTaskChange();
+    },
+    [loadTasks, onTaskChange],
+  );
 
   const handleDropOnList = async (
     draggedId: string,
