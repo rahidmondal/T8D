@@ -27,6 +27,8 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
   const [focusedListId, setFocusedListId] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  const [refocusTrigger, setRefocusTrigger] = useState(0);
+
   useEffect(() => {
     if (editingListId && editInputRef.current) {
       editInputRef.current.focus();
@@ -57,6 +59,12 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
     }
   }, [taskLists, focusedListId, activeListId]);
 
+  useEffect(() => {
+    if (refocusTrigger > 0) {
+      sidebarRef.current?.focus();
+    }
+  }, [refocusTrigger]);
+
   const handleStartEditing = (listId: string, currentName: string) => {
     setEditingListId(listId);
     setEditingValue(currentName);
@@ -77,10 +85,9 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
       void updateTaskList(editingListId, { name: editingValue.trim() });
     }
     handleCancelEditing();
-    setTimeout(() => {
-      sidebarRef.current?.focus();
-    }, 0);
+    setRefocusTrigger(c => c + 1);
   };
+
   const handleSelectList = (listId: string) => {
     if (editingListId !== listId) {
       setActiveListId(listId);
@@ -96,9 +103,7 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
         setActiveListId(newList.id);
         onNavigate('todolist');
         setFocusedListId(newList.id);
-        setTimeout(() => {
-          sidebarRef.current?.focus();
-        }, 0);
+        setRefocusTrigger(c => c + 1);
       }
     });
   };
