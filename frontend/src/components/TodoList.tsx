@@ -165,15 +165,39 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     [tasks],
   );
 
-  const getActiveRootTasks = useCallback(
-    () =>
-      tasks.filter(task => !task.parentId && task.status !== TaskStatus.COMPLETED).sort((a, b) => a.order - b.order),
-    [tasks],
-  );
+  const getActiveRootTasks = useCallback(() => {
+    return tasks
+      .filter(task => {
+        if (task.parentId) return false;
+
+        if (task.status !== TaskStatus.COMPLETED) return true;
+
+        const hasIncompleteDescendants = (taskId: string): boolean => {
+          const children = tasks.filter(t => t.parentId === taskId);
+          return children.some(child => child.status !== TaskStatus.COMPLETED || hasIncompleteDescendants(child.id));
+        };
+
+        return hasIncompleteDescendants(task.id);
+      })
+      .sort((a, b) => a.order - b.order);
+  }, [tasks]);
 
   const getCompletedRootTasks = useCallback(
     () =>
-      tasks.filter(task => !task.parentId && task.status === TaskStatus.COMPLETED).sort((a, b) => a.order - b.order),
+      tasks
+        .filter(task => {
+          if (task.parentId) return false;
+
+          if (task.status !== TaskStatus.COMPLETED) return false;
+
+          const hasIncompleteDescendants = (taskId: string): boolean => {
+            const children = tasks.filter(t => t.parentId === taskId);
+            return children.some(child => child.status !== TaskStatus.COMPLETED || hasIncompleteDescendants(child.id));
+          };
+
+          return !hasIncompleteDescendants(task.id);
+        })
+        .sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -282,6 +306,15 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     },
     [tasks, visibleTaskIds, handleLocalTaskChange],
   );
+
+  const handleFocusFromForm = useCallback(() => {
+    if (visibleTaskIds.length > 0) {
+      const lastTaskId = visibleTaskIds[visibleTaskIds.length - 1];
+      setFocusedTaskId(lastTaskId);
+    } else {
+      listContainerRef.current?.focus();
+    }
+  }, [visibleTaskIds]);
 
   const handleListKeyDown = (e: React.KeyboardEvent) => {
     if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -500,7 +533,13 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
         )}
       </div>
       <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-        <TodoForm ref={ref} taskListId={activeListId} parentId={null} onTaskCreated={handleLocalTaskChange} />
+        <TodoForm
+          ref={ref}
+          taskListId={activeListId}
+          parentId={null}
+          onTaskCreated={handleLocalTaskChange}
+          onFocusParent={handleFocusFromForm}
+        />
       </div>
     </div>
   );

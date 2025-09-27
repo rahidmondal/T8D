@@ -9,10 +9,11 @@ interface TodoFormProps {
   onCancel?: () => void;
   startExpanded?: boolean;
   autoFocus?: boolean;
+  onFocusParent?: () => void;
 }
 
 const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
-  ({ parentId, taskListId, onTaskCreated, onCancel, startExpanded = false, autoFocus = false }, ref) => {
+  ({ parentId, taskListId, onTaskCreated, onCancel, startExpanded = false, autoFocus = false, onFocusParent }, ref) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -31,6 +32,11 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
         setName('');
         setDescription('');
         setIsExpanded(false);
+      }
+
+      // Focus parent container after cancel
+      if (onFocusParent) {
+        onFocusParent();
       }
     };
 
@@ -66,6 +72,23 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
       }
     };
 
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancel();
+      } else if (e.key === 'ArrowUp' && !name && onFocusParent) {
+        e.preventDefault();
+        onFocusParent();
+      }
+    };
+
+    const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
     return (
       <div className="relative" onKeyDown={handleKeyDown}>
         <form
@@ -81,6 +104,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
               onChange={e => {
                 setName(e.target.value);
               }}
+              onKeyDown={handleInputKeyDown}
               placeholder={parentId ? 'Add a sub-task' : 'What needs to be done?'}
               className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
               required
@@ -115,6 +139,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
                 onChange={e => {
                   setDescription(e.target.value);
                 }}
+                onKeyDown={handleTextareaKeyDown}
                 placeholder="Add details (optional)"
                 className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
                 rows={3}

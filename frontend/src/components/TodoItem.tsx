@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import SubtaskCountBadge from '@src/components/SubtaskCountBadge';
+import TodoForm from '@src/components/TodoForm';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTask, updateTask } from '@src/utils/todo/todo';
-
-import SubtaskCountBadge from './SubtaskCountBadge';
-import TodoForm from './TodoForm';
 
 interface TodoItemProps {
   task: Task;
@@ -14,8 +13,8 @@ interface TodoItemProps {
   onDrop: (draggedId: string, targetId: string | null, position?: 'before' | 'after' | 'inside') => void;
   onTasksChange: (formIdToFocus?: string | null) => void;
   loadTasks: () => Promise<void>;
-  onDragOver?: (taskId: string | null) => void;
-  dragTarget?: string | null;
+  onDragOver: ((taskId: string | null) => void) | undefined;
+  dragTarget?: string | null | undefined;
   expandedState?: Record<string, boolean>;
   setExpandedState?: (state: Record<string, boolean>) => void;
   focusedTaskId?: string | null;
@@ -206,6 +205,19 @@ export default function TodoItem({
     if (childTasks.length > 0) {
       setExpanded(!isExpanded);
     }
+  };
+
+  const handleFocusFromForm = () => {
+    setFocusedTaskId(task.id);
+  };
+
+  const handleTaskCreated = (newTask: string) => {
+    onTasksChange(newTask);
+  };
+
+  const handleFormCancel = () => {
+    setShowAddForm(false);
+    setFocusedTaskId(task.id);
   };
 
   const handleItemKeyDown = (e: React.KeyboardEvent) => {
@@ -413,6 +425,7 @@ export default function TodoItem({
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 focus:outline-none"
               title="Edit task"
               tabIndex={-1}
+              data-edit-button
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -523,23 +536,16 @@ export default function TodoItem({
           </div>
         </div>
 
-        {task.description && !isEditing && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>
-        )}
+        {task.description && <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 ml-8">{task.description}</p>}
       </div>
       {showAddForm && activeListId && (
         <div className="ml-8 mt-2 mb-2">
           <TodoForm
             taskListId={activeListId}
             parentId={task.id}
-            onTaskCreated={newTaskId => {
-              setShowAddForm(false);
-              onTasksChange(newTaskId);
-            }}
-            onCancel={() => {
-              setShowAddForm(false);
-              setFocusedTaskId(task.id);
-            }}
+            onTaskCreated={handleTaskCreated}
+            onCancel={handleFormCancel}
+            onFocusParent={handleFocusFromForm}
             autoFocus
           />
         </div>
