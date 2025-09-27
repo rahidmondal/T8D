@@ -22,6 +22,17 @@ function App() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSidebarOpen(false);
+        setShortcutMenuOpen(false);
+        const activeElement = document.activeElement;
+        if (activeElement && 'blur' in activeElement) {
+          (activeElement as HTMLElement).blur();
+        }
+        return;
+      }
       if (e.altKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         setSidebarOpen(prev => !prev);

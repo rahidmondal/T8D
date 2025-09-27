@@ -7,7 +7,6 @@ interface ShortcutMenuProps {
 
 const globalShortcuts = [
   { key: 'n', description: 'New top-level task' },
-  { key: '/', description: 'Search / Filter tasks' },
   { key: '?', description: 'Open this shortcuts menu' },
   { key: 'Escape', description: 'Close forms or cancel actions' },
 ];
