@@ -82,7 +82,7 @@ function App() {
         </aside>
 
         {/* Overlay for mobile */}
-        {isSidebarOpen && (
+        {isSidebarOpen ? (
           <div
             className="fixed inset-0 z-30 bg-black/30 lg:hidden"
             onClick={() => {
@@ -90,11 +90,12 @@ function App() {
             }}
             aria-hidden="true"
           ></div>
-        )}
+        ) : null}
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          {currentView === 'todolist' && <TodoList ref={mainFormRef} />}
-          {currentView === 'settings' && (
+          {currentView === 'todolist' ? (
+            <TodoList ref={mainFormRef} />
+          ) : (
             <div className="w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
               <div className="pl-12 lg:pl-6">
                 <Settings />
