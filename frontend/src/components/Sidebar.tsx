@@ -77,8 +77,10 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
       void updateTaskList(editingListId, { name: editingValue.trim() });
     }
     handleCancelEditing();
+    setTimeout(() => {
+      sidebarRef.current?.focus();
+    }, 0);
   };
-
   const handleSelectList = (listId: string) => {
     if (editingListId !== listId) {
       setActiveListId(listId);
@@ -91,7 +93,12 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
     void addTaskList(name).then(newList => {
       if (newList) {
         setAddModalOpen(false);
-        handleSelectList(newList.id);
+        setActiveListId(newList.id);
+        onNavigate('todolist');
+        setFocusedListId(newList.id);
+        setTimeout(() => {
+          sidebarRef.current?.focus();
+        }, 0);
       }
     });
   };
