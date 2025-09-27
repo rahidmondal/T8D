@@ -58,7 +58,7 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
     if (
       editingListId &&
       editingValue.trim() &&
-      editingValue.trim() !== taskLists.find(l => l.id === editingListId)?.name
+      editingValue.trim() !== taskLists.find(list => list.id === editingListId)?.name
     ) {
       void updateTaskList(editingListId, { name: editingValue.trim() });
     }
