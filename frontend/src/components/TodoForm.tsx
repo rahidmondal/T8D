@@ -1,11 +1,12 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 
+import { Task } from '@src/models/Task';
 import { createTask } from '@src/utils/todo/todo';
 
 interface TodoFormProps {
   parentId: string | null;
   taskListId: string;
-  onTaskCreated: (newTaskId: string) => void;
+  onTaskCreated: (newTask: Task) => void;
   onCancel?: () => void;
   startExpanded?: boolean;
   autoFocus?: boolean;
@@ -34,7 +35,6 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
         setIsExpanded(false);
       }
 
-      // Focus parent container after cancel
       if (onFocusParent) {
         onFocusParent();
       }
@@ -56,8 +56,10 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
         const newTask = await createTask(name, taskListId, description || undefined, parentId, Date.now());
         setName('');
         setDescription('');
-        setIsExpanded(startExpanded);
-        onTaskCreated(newTask.id);
+        if (!parentId) {
+          setIsExpanded(startExpanded);
+        }
+        onTaskCreated(newTask);
       } catch (error) {
         console.error('Error Happened During task Creation', error);
       } finally {

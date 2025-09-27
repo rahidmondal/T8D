@@ -96,6 +96,14 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     [loadTasks, onTaskChange, focusedTaskId],
   );
 
+  const handleTaskAdded = useCallback(
+    (newTask: Task) => {
+      setTasks(prevTasks => [...prevTasks, newTask]);
+      onTaskChange();
+    },
+    [onTaskChange],
+  );
+
   const handleDropOnList = async (
     draggedId: string,
     targetId: string | null,
@@ -442,6 +450,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                   }}
                   onAddSibling={id => void handleAddSibling(id)}
                   onIndentTask={id => void handleIndentTask(id)}
+                  onTaskAdded={handleTaskAdded}
                 />
               ))}
             </div>
@@ -523,6 +532,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                         }}
                         onAddSibling={id => void handleAddSibling(id)}
                         onIndentTask={id => void handleIndentTask(id)}
+                        onTaskAdded={handleTaskAdded}
                       />
                     ))}
                   </div>

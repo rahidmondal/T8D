@@ -22,6 +22,7 @@ interface TodoItemProps {
   registerItemRef: (el: HTMLDivElement | null, id: string) => void;
   onAddSibling: (taskId: string) => void;
   onIndentTask: (taskId: string) => void;
+  onTaskAdded: (newTask: Task) => void;
 }
 
 export default function TodoItem({
@@ -40,6 +41,7 @@ export default function TodoItem({
   registerItemRef,
   onAddSibling,
   onIndentTask,
+  onTaskAdded,
 }: TodoItemProps) {
   const { activeListId } = useTaskLists();
   const isFocused = focusedTaskId === task.id;
@@ -211,10 +213,9 @@ export default function TodoItem({
     setFocusedTaskId(task.id);
   };
 
-  const handleTaskCreated = (newTask: string) => {
-    onTasksChange(newTask);
+  const handleTaskCreated = (newTask: Task) => {
+    onTaskAdded(newTask);
   };
-
   const handleFormCancel = () => {
     setShowAddForm(false);
     setFocusedTaskId(task.id);
