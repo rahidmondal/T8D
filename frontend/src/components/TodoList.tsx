@@ -81,17 +81,19 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   }, [focusedTaskId]);
 
   const handleLocalTaskChange = useCallback(
-    (newlyCreatedTaskId?: string) => {
+    (newlyCreatedTaskId?: string | null) => {
+      const currentFocus = focusedTaskId;
+
       void loadTasks().then(() => {
-        if (newlyCreatedTaskId) {
-          setFocusedTaskId(newlyCreatedTaskId.parentId ? newlyCreatedTaskId : null);
-        } else {
+        if (currentFocus && itemRefs.current[currentFocus]) {
+          setFocusedTaskId(currentFocus);
+        } else if (!newlyCreatedTaskId) {
           listContainerRef.current?.focus();
         }
       });
       onTaskChange();
     },
-    [loadTasks, onTaskChange],
+    [loadTasks, onTaskChange, focusedTaskId],
   );
 
   const handleDropOnList = async (
@@ -159,24 +161,19 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   };
 
   const getChildTasks = useCallback(
-    (parentId: string | null) =>
-      tasks.filter(task => task && task.parentId === parentId).sort((a, b) => a.order - b.order),
+    (parentId: string | null) => tasks.filter(task => task.parentId === parentId).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
   const getActiveRootTasks = useCallback(
     () =>
-      tasks
-        .filter(task => task && !task.parentId && task.status !== TaskStatus.COMPLETED)
-        .sort((a, b) => a.order - b.order),
+      tasks.filter(task => !task.parentId && task.status !== TaskStatus.COMPLETED).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
   const getCompletedRootTasks = useCallback(
     () =>
-      tasks
-        .filter(task => task && !task.parentId && task.status === TaskStatus.COMPLETED)
-        .sort((a, b) => a.order - b.order),
+      tasks.filter(task => !task.parentId && task.status === TaskStatus.COMPLETED).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -254,7 +251,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
 
   const handleIndentTask = useCallback(
     async (taskId: string) => {
-      if (!visibleTaskIds) {
+      if (visibleTaskIds.length === 0) {
         return;
       }
       const taskIndex = visibleTaskIds.indexOf(taskId);
@@ -410,8 +407,8 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                   registerItemRef={(el, id) => {
                     itemRefs.current[id] = el;
                   }}
-                  onAddSibling={handleAddSibling}
-                  onIndentTask={handleIndentTask}
+                  onAddSibling={id => void handleAddSibling(id)}
+                  onIndentTask={id => void handleIndentTask(id)}
                 />
               ))}
             </div>
@@ -491,8 +488,8 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                         registerItemRef={(el, id) => {
                           itemRefs.current[id] = el;
                         }}
-                        onAddSibling={handleAddSibling}
-                        onIndentTask={handleIndentTask}
+                        onAddSibling={id => void handleAddSibling(id)}
+                        onIndentTask={id => void handleIndentTask(id)}
                       />
                     ))}
                   </div>
