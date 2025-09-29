@@ -11,10 +11,16 @@ interface TodoListProps {
   onTaskChange?: () => void;
 }
 
+interface TodoListRefs {
+  form: React.Ref<HTMLInputElement>;
+  list: React.Ref<HTMLDivElement>;
+}
+
 const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
 const COMPLETED_SECTION_EXPANDED_KEY = 't8d_completed_expanded';
 
-const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = () => {} }, ref) => {
+const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) => {
+  const { form: formRef, list: listRef } = ref as TodoListRefs;
   const { taskLists, activeListId, isLoading: isListLoading } = useTaskLists();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +29,6 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
 
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const listContainerRef = useRef<HTMLDivElement>(null);
 
   const [showCompleted, setShowCompleted] = useState<boolean>(() => {
     try {
@@ -80,21 +85,10 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     }
   }, [focusedTaskId]);
 
-  const handleLocalTaskChange = useCallback(
-    (newlyCreatedTaskId?: string | null) => {
-      const currentFocus = focusedTaskId;
-
-      void loadTasks().then(() => {
-        if (currentFocus && itemRefs.current[currentFocus]) {
-          setFocusedTaskId(currentFocus);
-        } else if (!newlyCreatedTaskId) {
-          listContainerRef.current?.focus();
-        }
-      });
-      onTaskChange();
-    },
-    [loadTasks, onTaskChange, focusedTaskId],
-  );
+  const handleLocalTaskChange = useCallback(() => {
+    void loadTasks();
+    onTaskChange();
+  }, [loadTasks, onTaskChange]);
 
   const handleTaskAdded = useCallback(
     (newTask: Task) => {
@@ -320,7 +314,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
       const lastTaskId = visibleTaskIds[visibleTaskIds.length - 1];
       setFocusedTaskId(lastTaskId);
     } else {
-      listContainerRef.current?.focus();
+      listRef.current?.focus();
     }
   }, [visibleTaskIds]);
 
@@ -364,12 +358,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   const completedRootTasks = getCompletedRootTasks();
 
   return (
-    <div
-      ref={listContainerRef}
-      onKeyDown={handleListKeyDown}
-      tabIndex={-1}
-      className="h-full flex flex-col focus:outline-none"
-    >
+    <div ref={listRef} onKeyDown={handleListKeyDown} tabIndex={-1} className="h-full flex flex-col focus:outline-none">
       <header className="flex-shrink-0 mb-4 pt-4 px-4 pl-16 lg:pl-4">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
         <DateTime />
@@ -544,7 +533,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
       </div>
       <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
         <TodoForm
-          ref={ref}
+          ref={formRef}
           taskListId={activeListId}
           parentId={null}
           onTaskCreated={handleLocalTaskChange}

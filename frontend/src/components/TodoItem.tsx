@@ -216,9 +216,10 @@ export default function TodoItem({
   const handleTaskCreated = (newTask: Task) => {
     onTaskAdded(newTask);
   };
+
   const handleFormCancel = () => {
     setShowAddForm(false);
-    setFocusedTaskId(task.id);
+    itemRef.current?.focus();
   };
 
   const handleItemKeyDown = (e: React.KeyboardEvent) => {

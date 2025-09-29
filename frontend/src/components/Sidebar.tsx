@@ -14,7 +14,8 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
-const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
+const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
+  const { currentView, onNavigate, setSidebarOpen } = props;
   const { taskLists, activeListId, setActiveListId, addTaskList, removeTaskList, updateTaskList, isLoading } =
     useTaskLists();
   const [editingListId, setEditingListId] = useState<string | null>(null);
@@ -180,7 +181,14 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
   return (
     <>
       <div
-        ref={sidebarRef}
+        ref={node => {
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+          sidebarRef.current = node;
+        }}
         onKeyDown={handleKeyDown}
         tabIndex={-1}
         className="h-full w-64 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 focus:outline-none"
@@ -318,6 +326,8 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
       <NewListModal isOpen={isAddModalOpen} onClose={handleModalClose} onSave={handleAddNewList} />
     </>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

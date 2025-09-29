@@ -65,6 +65,10 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
       } finally {
         setIsSubmitting(false);
       }
+
+      if (ref && typeof ref !== 'function' && ref.current) {
+        ref.current.focus();
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
