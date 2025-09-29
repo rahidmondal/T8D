@@ -571,6 +571,7 @@ export default function TodoItem({
               registerItemRef={registerItemRef}
               onAddSibling={onAddSibling}
               onIndentTask={onIndentTask}
+              onTaskAdded={onTaskAdded}
             />
           ))}
         </div>
