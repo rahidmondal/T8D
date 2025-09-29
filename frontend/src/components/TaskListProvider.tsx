@@ -62,16 +62,15 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
   };
-
   const handleUpdateTaskList = async (listId: string, updates: Partial<TaskList>) => {
     try {
       const updatedList = await updateTaskList(listId, updates);
-      setTaskLists(prevLists => prevLists.map(list => (list.id === listId ? { ...list, ...updatedList } : list)));
+
+      setTaskLists(prevLists => prevLists.map(list => (list.id === listId ? updatedList : list)));
     } catch (error) {
       console.error('Failed to update task list:', error);
     }
   };
-
   const removeTaskList = async (listId: string) => {
     if (taskLists.length <= 1) {
       console.error('You cannot delete the last task list.');
