@@ -111,20 +111,25 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   const existingTask = await getTaskFromDb(taskId);
 
   if (!existingTask) {
-    throw new Error(`Task with id ${taskId} not found`);
+    console.warn(`Task with id ${taskId} not found during deletion`);
+    return;
   }
 
-  const childTasks = await getTasksByParentFromDb(taskId);
-  const childTasksDeletePromises = childTasks.map(childTask => {
-    if (childTask.status === TaskStatus.COMPLETED) {
-      return deleteTask(childTask.id);
-    }
-    return updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
-  });
+  const finalParentId = existingTask.parentId ?? null;
+  const performDelete = async (currentTaskId: string): Promise<void> => {
+    const childTasks = await getTasksByParentFromDb(currentTaskId);
+    const childPromise = childTasks.map(childTask => {
+      if (childTask.status === TaskStatus.COMPLETED) {
+        return performDelete(childTask.id);
+      } else {
+        return updateTask(childTask.id, { parentId: finalParentId });
+      }
+    });
+    await Promise.all(childPromise);
+    await deleteTaskFromDb(currentTaskId);
+  };
 
-  await Promise.all(childTasksDeletePromises);
-
-  await deleteTaskFromDb(taskId);
+  await performDelete(taskId);
 };
 
 export const getAllTasks = (): Promise<Task[]> => {
