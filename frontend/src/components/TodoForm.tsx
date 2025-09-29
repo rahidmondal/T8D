@@ -47,7 +47,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
 
       setIsSubmitting(true);
       try {
-        const newTask = await createTask(name, taskListId, description || undefined, parentId);
+        const newTask = await createTask(name, taskListId, description || undefined, parentId, Date.now());
         setName('');
         setDescription('');
         setIsExpanded(startExpanded);

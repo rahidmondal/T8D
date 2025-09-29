@@ -1,7 +1,7 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import TodoItem from '@components/TodoItem';
-import { useTaskLists } from '@src/Hooks/useTaskLists';
+import TodoItem from '@src/components/TodoItem';
+import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
 

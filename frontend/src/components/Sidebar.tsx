@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { Cog6ToothIcon, EllipsisVerticalIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import logo from '@src/assets/t8d512.jpg';
-import { useTaskLists } from '@src/Hooks/useTaskLists';
+import { useTaskLists } from '@src/hooks/useTaskLists';
 
 import NewListModal from './NewListModal';
 
@@ -210,7 +210,7 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
 
         {/* Footer with Settings */}
         <div className="flex justify-between items-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <p>T8D v0.4.1</p>
+          <p>T8D v0.5.0</p>
           <button
             onClick={() => {
               onNavigate('settings');

@@ -12,9 +12,8 @@ const NewListModal: React.FC<NewListModalProps> = ({ isOpen, onClose, onSave }) 
 
   useEffect(() => {
     if (isOpen) {
-      // Focus the input when the modal opens
       setTimeout(() => inputRef.current?.focus(), 100);
-      setName(''); // Reset name on open
+      setName('');
     }
   }, [isOpen]);
 
