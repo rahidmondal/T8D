@@ -52,30 +52,41 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addTaskList = async (name: string) => {
-    const newList = await createTaskList(name);
-    await initializeLists();
-    return newList;
+    try {
+      const newList = await createTaskList(name);
+      setTaskLists(prevLists => [...prevLists, newList]);
+      setActiveListId(newList.id);
+      return newList;
+    } catch (error) {
+      console.error('Failed to add task list:', error);
+      throw error;
+    }
   };
-
   const handleUpdateTaskList = async (listId: string, updates: Partial<TaskList>) => {
-    await updateTaskList(listId, updates);
-    await initializeLists();
-  };
+    try {
+      const updatedList = await updateTaskList(listId, updates);
 
+      setTaskLists(prevLists => prevLists.map(list => (list.id === listId ? updatedList : list)));
+    } catch (error) {
+      console.error('Failed to update task list:', error);
+    }
+  };
   const removeTaskList = async (listId: string) => {
     if (taskLists.length <= 1) {
       console.error('You cannot delete the last task list.');
       return;
     }
-    await deleteTaskList(listId);
-    await initializeLists();
 
-    if (activeListId === listId) {
+    try {
+      await deleteTaskList(listId);
       const remainingLists = taskLists.filter(list => list.id !== listId);
-      const newActiveId = remainingLists[0]?.id ?? null;
-      if (newActiveId) {
-        setActiveListId(newActiveId);
+      setTaskLists(remainingLists);
+
+      if (activeListId === listId) {
+        setActiveListId(remainingLists[0].id);
       }
+    } catch (error) {
+      console.error('Failed to remove task list:', error);
     }
   };
 
