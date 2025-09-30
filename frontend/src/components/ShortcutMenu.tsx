@@ -27,7 +27,7 @@ const taskShortcuts = [
   { key: 'Tab', description: 'Indent task' },
   { key: 'Shift + Tab', description: 'Outdent task (Promote)' },
   { key: 'Delete', description: 'Delete task' },
-  { key: 'Shift + Delete', description: 'Delete task' },
+  { key: 'Shift + D', description: 'Delete task' },
 ];
 
 const taskListShortcuts = [

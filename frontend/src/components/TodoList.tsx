@@ -346,7 +346,7 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
       return;
     }
 
-    if (e.shiftKey && e.key === 'Delete') {
+    if (e.shiftKey && e.key.toUpperCase() === 'D') {
       e.preventDefault();
       void handleDeleteCompleted();
       return;
