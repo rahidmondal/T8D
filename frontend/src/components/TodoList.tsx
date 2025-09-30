@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import DateTime from '@src/components/DateTime';
 import TodoForm from '@src/components/TodoForm';
@@ -9,18 +9,13 @@ import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/t
 
 interface TodoListProps {
   onTaskChange?: () => void;
+  formRef: React.RefObject<HTMLInputElement | null>;
+  listRef: React.RefObject<HTMLDivElement | null>;
 }
-
-interface TodoListRefs {
-  form: React.Ref<HTMLInputElement>;
-  list: React.Ref<HTMLDivElement>;
-}
-
 const EXPANDED_STATE_KEY = 't8d_expanded_tasks';
 const COMPLETED_SECTION_EXPANDED_KEY = 't8d_completed_expanded';
 
-const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) => {
-  const { form: formRef, list: listRef } = ref as TodoListRefs;
+const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) => {
   const { taskLists, activeListId, isLoading: isListLoading } = useTaskLists();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,10 +80,13 @@ const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) =>
     }
   }, [focusedTaskId]);
 
-  const handleLocalTaskChange = useCallback(() => {
-    void loadTasks();
-    onTaskChange();
-  }, [loadTasks, onTaskChange]);
+  const handleLocalTaskChange = useCallback(
+    (_formIdToFocus?: string | null) => {
+      void loadTasks();
+      onTaskChange();
+    },
+    [loadTasks, onTaskChange],
+  );
 
   const handleTaskAdded = useCallback(
     (newTask: Task) => {
@@ -314,9 +312,11 @@ const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) =>
       const lastTaskId = visibleTaskIds[visibleTaskIds.length - 1];
       setFocusedTaskId(lastTaskId);
     } else {
-      listRef.current?.focus();
+      if (listRef.current) {
+        listRef.current.focus();
+      }
     }
-  }, [visibleTaskIds]);
+  }, [visibleTaskIds, listRef]);
 
   const handleListKeyDown = (e: React.KeyboardEvent) => {
     if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -568,13 +568,13 @@ const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) =>
           ref={formRef}
           taskListId={activeListId}
           parentId={null}
-          onTaskCreated={handleLocalTaskChange}
+          onTaskCreated={handleTaskAdded}
           onFocusParent={handleFocusFromForm}
         />
       </div>
     </div>
   );
-});
+};
 
 TodoList.displayName = 'TodoList';
 export default TodoList;

@@ -16,9 +16,9 @@ function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isShortcutMenuOpen, setShortcutMenuOpen] = useState(false);
   const [currentView, setCurrentView] = useState<View>('todolist');
-  const mainFormRef = useRef<HTMLInputElement>(null);
-  const sideBarRef = useRef<HTMLDivElement>(null);
-  const todoListRef = useRef<HTMLDivElement>(null);
+  const mainFormRef = useRef<HTMLInputElement | null>(null);
+  const sideBarRef = useRef<HTMLDivElement | null>(null);
+  const todoListRef = useRef<HTMLDivElement | null>(null);
   const { toggleTheme } = useTheme();
 
   const handleNavigate = useCallback(
@@ -115,7 +115,7 @@ function App() {
 
         <main className="flex-1 flex flex-col overflow-hidden">
           {currentView === 'todolist' ? (
-            <TodoList ref={{ form: mainFormRef, list: todoListRef }} />
+            <TodoList formRef={mainFormRef} listRef={todoListRef} />
           ) : (
             <div className="w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
               <div className="pl-12 lg:pl-6">
