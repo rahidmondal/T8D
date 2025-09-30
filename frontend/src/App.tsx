@@ -1,6 +1,6 @@
 import './App.css';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import Settings from '@src/components/Settings';
@@ -8,6 +8,7 @@ import ShortcutMenu from '@src/components/ShortcutMenu';
 import Sidebar from '@src/components/Sidebar';
 import { TaskListProvider } from '@src/components/TaskListProvider';
 import TodoList from '@src/components/TodoList';
+import { useTheme } from '@src/hooks/useTheme';
 
 type View = 'todolist' | 'settings';
 
@@ -18,6 +19,19 @@ function App() {
   const mainFormRef = useRef<HTMLInputElement>(null);
   const sideBarRef = useRef<HTMLDivElement>(null);
   const todoListRef = useRef<HTMLDivElement>(null);
+  const { toggleTheme } = useTheme();
+
+  const handleNavigate = useCallback(
+    (view: View) => {
+      const oldView = currentView;
+      setCurrentView(view);
+      setSidebarOpen(false);
+      if (oldView === 'settings' && view === 'todolist') {
+        setTimeout(() => todoListRef.current?.focus(), 0);
+      }
+    },
+    [currentView],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -50,19 +64,22 @@ function App() {
       }
       if (e.altKey && e.key.toLowerCase() === 'g') {
         e.preventDefault();
-        setCurrentView(currentView === 'settings' ? 'todolist' : 'settings');
+        handleNavigate(currentView === 'settings' ? 'todolist' : 'settings');
+      }
+      if (e.shiftKey && e.key.toLowerCase() === 'q') {
+        e.preventDefault();
+        toggleTheme();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentView]);
+  }, [currentView, toggleTheme, handleNavigate]);
 
   return (
     <TaskListProvider>
       <div className="relative flex h-screen bg-slate-100 dark:bg-slate-900 lg:flex-row">
-        {/* Mobile Hamburger Menu */}
         <button
           className="lg:hidden fixed top-4 left-4 z-30 bg-sky-600 text-white p-2 rounded-md shadow-lg"
           onClick={() => {
@@ -81,15 +98,11 @@ function App() {
           <Sidebar
             ref={sideBarRef}
             currentView={currentView}
-            onNavigate={view => {
-              setCurrentView(view);
-              setSidebarOpen(false);
-            }}
+            onNavigate={handleNavigate}
             setSidebarOpen={setSidebarOpen}
           />
         </aside>
 
-        {/* Overlay for mobile */}
         {isSidebarOpen ? (
           <div
             className="fixed inset-0 z-30 bg-black/30 lg:hidden"
