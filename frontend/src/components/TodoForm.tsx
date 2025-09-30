@@ -1,18 +1,20 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 
+import { Task } from '@src/models/Task';
 import { createTask } from '@src/utils/todo/todo';
 
 interface TodoFormProps {
   parentId: string | null;
   taskListId: string;
-  onTaskCreated: (newTaskId: string) => void;
+  onTaskCreated: (newTask: Task) => void;
   onCancel?: () => void;
   startExpanded?: boolean;
   autoFocus?: boolean;
+  onFocusParent?: () => void;
 }
 
 const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
-  ({ parentId, taskListId, onTaskCreated, onCancel, startExpanded = false, autoFocus = false }, ref) => {
+  ({ parentId, taskListId, onTaskCreated, onCancel, startExpanded = false, autoFocus = false, onFocusParent }, ref) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -32,6 +34,10 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
         setDescription('');
         setIsExpanded(false);
       }
+
+      if (onFocusParent) {
+        onFocusParent();
+      }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -47,21 +53,47 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
 
       setIsSubmitting(true);
       try {
-        const newTask = await createTask(name, taskListId, description || undefined, parentId);
+        const newTask = await createTask(name, taskListId, description || undefined, parentId, Date.now());
         setName('');
         setDescription('');
-        setIsExpanded(startExpanded);
-        onTaskCreated(newTask.id);
+        if (!parentId) {
+          setIsExpanded(startExpanded);
+        }
+        onTaskCreated(newTask);
       } catch (error) {
         console.error('Error Happened During task Creation', error);
       } finally {
         setIsSubmitting(false);
+      }
+
+      if (ref && typeof ref !== 'function' && ref.current) {
+        ref.current.focus();
       }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      }
+    };
+
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      } else if (e.key === 'ArrowUp' && !name && onFocusParent) {
+        e.preventDefault();
+        onFocusParent();
+      }
+    };
+
+    const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         handleCancel();
       }
     };
@@ -81,6 +113,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
               onChange={e => {
                 setName(e.target.value);
               }}
+              onKeyDown={handleInputKeyDown}
               placeholder={parentId ? 'Add a sub-task' : 'What needs to be done?'}
               className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
               required
@@ -115,6 +148,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
                 onChange={e => {
                   setDescription(e.target.value);
                 }}
+                onKeyDown={handleTextareaKeyDown}
                 placeholder="Add details (optional)"
                 className="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 transition-all bg-white dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 text-base"
                 rows={3}

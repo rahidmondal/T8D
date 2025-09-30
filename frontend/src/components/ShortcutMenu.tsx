@@ -7,9 +7,12 @@ interface ShortcutMenuProps {
 
 const globalShortcuts = [
   { key: 'n', description: 'New top-level task' },
-  { key: '/', description: 'Search / Filter tasks' },
   { key: '?', description: 'Open this shortcuts menu' },
   { key: 'Escape', description: 'Close forms or cancel actions' },
+  { key: 'Alt + S', description: 'Focus sidebar/task lists' },
+  { key: 'Alt + T', description: 'Focus task list view' },
+  { key: 'Alt + G', description: 'Toggle Settings view' },
+  { key: 'Shift + Q', description: 'Toggle Theme (Light/Dark)' },
 ];
 
 const taskShortcuts = [
@@ -19,10 +22,19 @@ const taskShortcuts = [
   { key: 'Space', description: 'Toggle task completion' },
   { key: 'Enter', description: 'Edit task' },
   { key: 'a', description: 'Add a subtask' },
+  { key: 'Shift + c', description: 'Toggle Completed' },
   { key: 'Shift + Enter', description: 'Add a sibling task' },
   { key: 'Tab', description: 'Indent task' },
   { key: 'Shift + Tab', description: 'Outdent task (Promote)' },
   { key: 'Delete', description: 'Delete task' },
+  { key: 'Shift + D', description: 'Delete Completed task' },
+];
+
+const taskListShortcuts = [
+  { key: 'l', description: 'Add new task list' },
+  { key: 'Enter', description: 'Edit task list name' },
+  { key: 'Delete', description: 'Delete task list' },
+  { key: '↑ / ↓', description: 'Move focus between task lists' },
 ];
 
 const ShortcutDisplay = ({ shortcut }: { shortcut: { key: string; description: string } }) => (
@@ -96,10 +108,20 @@ export default function ShortcutMenu({ isOpen, onClose }: ShortcutMenuProps) {
               ))}
             </div>
           </div>
+
           <div className="mt-4">
-            <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">When a Task is Focused</h3>
+            <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Task</h3>
             <div className="divide-y divide-slate-200 dark:divide-slate-700">
               {taskShortcuts.map(shortcut => (
+                <ShortcutDisplay key={shortcut.key} shortcut={shortcut} />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Task List</h3>
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {taskListShortcuts.map(shortcut => (
                 <ShortcutDisplay key={shortcut.key} shortcut={shortcut} />
               ))}
             </div>

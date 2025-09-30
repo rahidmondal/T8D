@@ -19,18 +19,32 @@ import {
   updateTaskListInDb,
 } from '../database/database';
 
-export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
-  const content = `${task.id}${task.name}${task.description ?? ''}${task.status}${task.createdAt.toString()}${task.lastModified.toString()}${task.dueDate?.toString() ?? ''}${task.parentId ?? ''}${task.listId}`;
-
+const generateHash = async (dataArray: (string | number | null | undefined)[]): Promise<string> => {
+  const content = dataArray.map(item => item?.toString() ?? '').join('|');
   const encoder = new TextEncoder();
   const data = encoder.encode(content);
 
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
 
   return hashHex;
+};
+
+export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string> => {
+  const dataToHash = [
+    task.id,
+    task.name,
+    task.description ?? '',
+    task.status,
+    task.createdAt.toString(),
+    task.lastModified.toString(),
+    task.dueDate?.toString() ?? '',
+    task.parentId ?? '',
+    task.listId,
+  ];
+
+  return generateHash(dataToHash);
 };
 
 export const createTask = async (
@@ -38,6 +52,7 @@ export const createTask = async (
   listId: string,
   description?: string,
   parentId: string | null = null,
+  order?: number,
 ): Promise<Task> => {
   const now = Date.now();
   const taskId = uuidv4();
@@ -52,7 +67,7 @@ export const createTask = async (
     dueDate: null,
     parentId,
     listId,
-    order: 0,
+    order: order ?? now,
   };
 
   const hash = await generateTaskHash(taskWithoutHash);
@@ -87,9 +102,8 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
 
   if (updates.status === TaskStatus.COMPLETED) {
     const childTasks = await getTasksByParentFromDb(taskId);
-    for (const childTask of childTasks) {
-      await updateTask(childTask.id, { status: TaskStatus.COMPLETED });
-    }
+    const updatePromises = childTasks.map(childTask => updateTask(childTask.id, { status: TaskStatus.COMPLETED }));
+    await Promise.all(updatePromises);
   }
 };
 
@@ -97,20 +111,25 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   const existingTask = await getTaskFromDb(taskId);
 
   if (!existingTask) {
-    throw new Error(`Task with id ${taskId} not found`);
+    console.warn(`Task with id ${taskId} not found during deletion`);
+    return;
   }
 
-  const childTasks = await getTasksByParentFromDb(taskId);
-  await Promise.all(
-    childTasks.map(childTask => {
+  const finalParentId = existingTask.parentId ?? null;
+  const performDelete = async (currentTaskId: string): Promise<void> => {
+    const childTasks = await getTasksByParentFromDb(currentTaskId);
+    const childPromise = childTasks.map(childTask => {
       if (childTask.status === TaskStatus.COMPLETED) {
-        return deleteTask(childTask.id);
+        return performDelete(childTask.id);
+      } else {
+        return updateTask(childTask.id, { parentId: finalParentId });
       }
-      return updateTask(childTask.id, { parentId: existingTask.parentId ?? null });
-    }),
-  );
+    });
+    await Promise.all(childPromise);
+    await deleteTaskFromDb(currentTaskId);
+  };
 
-  await deleteTaskFromDb(taskId);
+  await performDelete(taskId);
 };
 
 export const getAllTasks = (): Promise<Task[]> => {
@@ -134,12 +153,9 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 // --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
-  const content = `${list.id}${list.name}${list.description ?? ''}${list.lastModified.toString()}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString(), list.order.toString()];
+
+  return generateHash(dataToHash);
 };
 
 export const createTaskList = async (name: string, description?: string): Promise<TaskList> => {
@@ -151,6 +167,7 @@ export const createTaskList = async (name: string, description?: string): Promis
     name,
     description: description ?? '',
     lastModified: now,
+    order: now,
   };
 
   const hash = await generateTaskListHash(listWithoutHash);
