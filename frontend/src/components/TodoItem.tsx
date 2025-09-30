@@ -213,9 +213,6 @@ export default function TodoItem({
     setFocusedTaskId(task.id);
   };
 
-  const handleTaskCreated = (newTask: Task) => {
-    onTaskAdded(newTask);
-  };
   const handleFormCancel = () => {
     setShowAddForm(false);
     setFocusedTaskId(task.id);
@@ -544,7 +541,7 @@ export default function TodoItem({
           <TodoForm
             taskListId={activeListId}
             parentId={task.id}
-            onTaskCreated={handleTaskCreated}
+            onTaskCreated={onTaskAdded}
             onCancel={handleFormCancel}
             onFocusParent={handleFocusFromForm}
             autoFocus
