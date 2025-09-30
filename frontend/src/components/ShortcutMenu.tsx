@@ -7,7 +7,6 @@ interface ShortcutMenuProps {
 
 const globalShortcuts = [
   { key: 'n', description: 'New top-level task' },
-  { key: '/', description: 'Search / Filter tasks' },
   { key: '?', description: 'Open this shortcuts menu' },
   { key: 'Escape', description: 'Close forms or cancel actions' },
 ];
@@ -17,12 +16,13 @@ const taskShortcuts = [
   { key: '→', description: 'Expand or enter subtasks' },
   { key: '←', description: 'Collapse or exit to parent' },
   { key: 'Space', description: 'Toggle task completion' },
-  { key: 'Enter', description: 'Edit task' },
+  { key: 'Enter', description: 'Edit task/tasklist' },
   { key: 'a', description: 'Add a subtask' },
   { key: 'Shift + Enter', description: 'Add a sibling task' },
   { key: 'Tab', description: 'Indent task' },
   { key: 'Shift + Tab', description: 'Outdent task (Promote)' },
   { key: 'Delete', description: 'Delete task' },
+  { key: 'l', description: 'Add new task list' },
 ];
 
 const ShortcutDisplay = ({ shortcut }: { shortcut: { key: string; description: string } }) => (

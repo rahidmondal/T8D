@@ -24,13 +24,17 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
   const editInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const [focusedListId, setFocusedListId] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const [refocusTrigger, setRefocusTrigger] = useState(0);
+
   useEffect(() => {
     if (editingListId && editInputRef.current) {
       editInputRef.current.focus();
     }
   }, [editingListId]);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -42,6 +46,24 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (focusedListId && !taskLists.some(list => list.id === focusedListId)) {
+      const listIds = taskLists.map(list => list.id);
+      const newIndex = listIds.indexOf(activeListId || listIds[0]);
+      if (newIndex !== -1) {
+        setFocusedListId(listIds[newIndex]);
+      } else if (listIds.length > 0) {
+        setFocusedListId(listIds[0]);
+      }
+    }
+  }, [taskLists, focusedListId, activeListId]);
+
+  useEffect(() => {
+    if (refocusTrigger > 0) {
+      sidebarRef.current?.focus();
+    }
+  }, [refocusTrigger]);
 
   const handleStartEditing = (listId: string, currentName: string) => {
     setEditingListId(listId);
@@ -58,27 +80,32 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
     if (
       editingListId &&
       editingValue.trim() &&
-      editingValue.trim() !== taskLists.find(l => l.id === editingListId)?.name
+      editingValue.trim() !== taskLists.find(taskList => taskList.id === editingListId)?.name
     ) {
       void updateTaskList(editingListId, { name: editingValue.trim() });
     }
     handleCancelEditing();
+    setRefocusTrigger(c => c + 1);
   };
 
   const handleSelectList = (listId: string) => {
     if (editingListId !== listId) {
       setActiveListId(listId);
       onNavigate('todolist');
+      setFocusedListId(listId);
     }
   };
 
   const handleAddNewList = (name: string) => {
     void addTaskList(name).then(newList => {
       if (newList) {
+        setAddModalOpen(false);
+        setActiveListId(newList.id);
         onNavigate('todolist');
+        setFocusedListId(newList.id);
+        setRefocusTrigger(c => c + 1);
       }
     });
-    setAddModalOpen(false);
   };
 
   const handleDeleteList = (listId: string) => {
@@ -91,10 +118,73 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
     setActiveMenuId(activeMenuId === listId ? null : listId);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement) {
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      sidebarRef.current?.blur();
+      return;
+    }
+
+    const listIds = taskLists.map(list => list.id);
+    const currentIndex = focusedListId ? listIds.indexOf(focusedListId) : -1;
+    let newIndex = currentIndex;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        newIndex = (currentIndex + 1) % listIds.length;
+        if (currentIndex === -1) {
+          newIndex = 0;
+        }
+        handleSelectList(listIds[newIndex]);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        newIndex = (currentIndex - 1 + listIds.length) % listIds.length;
+        if (currentIndex === -1) {
+          newIndex = listIds.length - 1;
+        }
+        handleSelectList(listIds[newIndex]);
+        break;
+      case 'Enter':
+        if (focusedListId) {
+          e.preventDefault();
+          const listToEdit = taskLists.find(taskList => taskList.id === focusedListId);
+          if (listToEdit) {
+            handleStartEditing(listToEdit.id, listToEdit.name);
+          }
+        }
+        break;
+      case 'l':
+        e.preventDefault();
+        setAddModalOpen(true);
+        break;
+      case 'Delete':
+        if (focusedListId) {
+          e.preventDefault();
+          handleDeleteList(focusedListId);
+        }
+        break;
+      default:
+        return;
+    }
+  };
+
+  const handleModalClose = () => {
+    setAddModalOpen(false);
+  };
+
   return (
     <>
-      <div className="h-full w-64 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-        {/* Header */}
+      <div
+        ref={sidebarRef}
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+        className="h-full w-64 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 focus:outline-none"
+      >
         <div className="relative flex flex-col justify-center items-center bg-gradient-to-r from-sky-600 to-sky-500 dark:from-sky-700 dark:to-sky-600 text-white py-6 shadow-md">
           <button
             className="absolute top-2 right-2 p-2 text-sky-200 hover:text-white lg:hidden"
@@ -109,8 +199,6 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
           <h1 className="text-xl font-bold">T8D</h1>
           <p className="text-sm text-sky-100 dark:text-sky-200">Task Manager</p>
         </div>
-
-        {/* Task Lists */}
         <div className="p-4 flex-1 overflow-y-auto">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -139,11 +227,14 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
                   onClick={() => {
                     handleSelectList(list.id);
                   }}
+                  onMouseOver={() => {
+                    setFocusedListId(list.id);
+                  }}
                   className={`relative flex items-center justify-between w-full px-3 py-2 text-sm rounded-md font-medium transition-colors duration-150 group cursor-pointer ${
                     activeListId === list.id && currentView === 'todolist' && !editingListId
                       ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                  }`}
+                  } ${focusedListId === list.id ? 'outline-2 outline-sky-500 outline-offset-1' : ''}`}
                 >
                   {editingListId === list.id ? (
                     <input
@@ -207,8 +298,6 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
             )}
           </nav>
         </div>
-
-        {/* Footer with Settings */}
         <div className="flex justify-between items-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <p>T8D v0.5.0</p>
           <button
@@ -226,13 +315,7 @@ const Sidebar = ({ currentView, onNavigate, setSidebarOpen }: SidebarProps) => {
           </button>
         </div>
       </div>
-      <NewListModal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setAddModalOpen(false);
-        }}
-        onSave={handleAddNewList}
-      />
+      <NewListModal isOpen={isAddModalOpen} onClose={handleModalClose} onSave={handleAddNewList} />
     </>
   );
 };

@@ -1,12 +1,11 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import DateTime from '@src/components/DateTime';
+import TodoForm from '@src/components/TodoForm';
 import TodoItem from '@src/components/TodoItem';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
-
-import DateTime from './DateTime';
-import TodoForm from './TodoForm';
 
 interface TodoListProps {
   onTaskChange?: () => void;
@@ -49,7 +48,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   const loadTasks = useCallback(async () => {
     if (!activeListId) {
       setTasks([]);
-      setIsLoading(false);
+      if (!isListLoading) setIsLoading(false);
       return;
     }
     setIsLoading(true);
@@ -61,7 +60,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     } finally {
       setIsLoading(false);
     }
-  }, [activeListId]);
+  }, [activeListId, isListLoading]);
 
   useEffect(() => {
     void loadTasks();
@@ -81,17 +80,29 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     }
   }, [focusedTaskId]);
 
-  const handleLocalTaskChange = (newlyCreatedTaskId?: string) => {
-    void loadTasks().then(() => {
-      if (newlyCreatedTaskId) {
-        setFocusedTaskId(newlyCreatedTaskId);
-      } else {
-        // If a root task was created, focus the list container for navigation
-        listContainerRef.current?.focus();
-      }
-    });
-    onTaskChange?.();
-  };
+  const handleLocalTaskChange = useCallback(
+    (newlyCreatedTaskId?: string | null) => {
+      const currentFocus = focusedTaskId;
+
+      void loadTasks().then(() => {
+        if (currentFocus && itemRefs.current[currentFocus]) {
+          setFocusedTaskId(currentFocus);
+        } else if (!newlyCreatedTaskId) {
+          listContainerRef.current?.focus();
+        }
+      });
+      onTaskChange();
+    },
+    [loadTasks, onTaskChange, focusedTaskId],
+  );
+
+  const handleTaskAdded = useCallback(
+    (newTask: Task) => {
+      setTasks(prevTasks => [...prevTasks, newTask]);
+      onTaskChange();
+    },
+    [onTaskChange],
+  );
 
   const handleDropOnList = async (
     draggedId: string,
@@ -158,23 +169,42 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
   };
 
   const getChildTasks = useCallback(
-    (parentId: string | null) =>
-      tasks.filter(task => task && task.parentId === parentId).sort((a, b) => a.order - b.order),
+    (parentId: string | null) => tasks.filter(task => task.parentId === parentId).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
-  const getActiveRootTasks = useCallback(
-    () =>
-      tasks
-        .filter(task => task && !task.parentId && task.status !== TaskStatus.COMPLETED)
-        .sort((a, b) => a.order - b.order),
-    [tasks],
-  );
+  const getActiveRootTasks = useCallback(() => {
+    return tasks
+      .filter(task => {
+        if (task.parentId) return false;
+
+        if (task.status !== TaskStatus.COMPLETED) return true;
+
+        const hasIncompleteDescendants = (taskId: string): boolean => {
+          const children = tasks.filter(t => t.parentId === taskId);
+          return children.some(child => child.status !== TaskStatus.COMPLETED || hasIncompleteDescendants(child.id));
+        };
+
+        return hasIncompleteDescendants(task.id);
+      })
+      .sort((a, b) => a.order - b.order);
+  }, [tasks]);
 
   const getCompletedRootTasks = useCallback(
     () =>
       tasks
-        .filter(task => task && !task.parentId && task.status === TaskStatus.COMPLETED)
+        .filter(task => {
+          if (task.parentId) return false;
+
+          if (task.status !== TaskStatus.COMPLETED) return false;
+
+          const hasIncompleteDescendants = (taskId: string): boolean => {
+            const children = tasks.filter(t => t.parentId === taskId);
+            return children.some(child => child.status !== TaskStatus.COMPLETED || hasIncompleteDescendants(child.id));
+          };
+
+          return !hasIncompleteDescendants(task.id);
+        })
         .sort((a, b) => a.order - b.order),
     [tasks],
   );
@@ -253,7 +283,7 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
 
   const handleIndentTask = useCallback(
     async (taskId: string) => {
-      if (!visibleTaskIds) {
+      if (visibleTaskIds.length === 0) {
         return;
       }
       const taskIndex = visibleTaskIds.indexOf(taskId);
@@ -284,6 +314,15 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
     },
     [tasks, visibleTaskIds, handleLocalTaskChange],
   );
+
+  const handleFocusFromForm = useCallback(() => {
+    if (visibleTaskIds.length > 0) {
+      const lastTaskId = visibleTaskIds[visibleTaskIds.length - 1];
+      setFocusedTaskId(lastTaskId);
+    } else {
+      listContainerRef.current?.focus();
+    }
+  }, [visibleTaskIds]);
 
   const handleListKeyDown = (e: React.KeyboardEvent) => {
     if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -409,8 +448,9 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                   registerItemRef={(el, id) => {
                     itemRefs.current[id] = el;
                   }}
-                  onAddSibling={handleAddSibling}
-                  onIndentTask={handleIndentTask}
+                  onAddSibling={id => void handleAddSibling(id)}
+                  onIndentTask={id => void handleIndentTask(id)}
+                  onTaskAdded={handleTaskAdded}
                 />
               ))}
             </div>
@@ -490,8 +530,9 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
                         registerItemRef={(el, id) => {
                           itemRefs.current[id] = el;
                         }}
-                        onAddSibling={handleAddSibling}
-                        onIndentTask={handleIndentTask}
+                        onAddSibling={id => void handleAddSibling(id)}
+                        onIndentTask={id => void handleIndentTask(id)}
+                        onTaskAdded={handleTaskAdded}
                       />
                     ))}
                   </div>
@@ -502,7 +543,13 @@ const TodoList = forwardRef<HTMLInputElement, TodoListProps>(({ onTaskChange = (
         )}
       </div>
       <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-        <TodoForm ref={ref} taskListId={activeListId} parentId={null} onTaskCreated={handleLocalTaskChange} />
+        <TodoForm
+          ref={ref}
+          taskListId={activeListId}
+          parentId={null}
+          onTaskCreated={handleLocalTaskChange}
+          onFocusParent={handleFocusFromForm}
+        />
       </div>
     </div>
   );
