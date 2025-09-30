@@ -340,12 +340,44 @@ const TodoList = forwardRef<TodoListProps>(({ onTaskChange = () => {} }, ref) =>
         nextIndex = 0;
       }
     }
+    if (e.shiftKey && e.key.toUpperCase() === 'C') {
+      e.preventDefault();
+      setShowCompleted(prev => !prev);
+      return;
+    }
+
+    if (e.shiftKey && e.key === 'Delete') {
+      e.preventDefault();
+      void handleDeleteCompleted();
+      return;
+    }
 
     if (nextIndex !== -1 && nextIndex < visibleTaskIds.length) {
       setFocusedTaskId(visibleTaskIds[nextIndex]);
     }
   };
 
+  useEffect(() => {
+    if (!showCompleted) {
+      const focusedTask = tasks.find(t => t.id === focusedTaskId);
+      if (focusedTask && focusedTask.status === TaskStatus.COMPLETED) {
+        const activeRoots = getActiveRootTasks();
+        if (activeRoots.length > 0) {
+          let lastVisibleActiveTask: string | null = null;
+          for (let i = visibleTaskIds.length - 1; i >= 0; i--) {
+            const id: string = visibleTaskIds[i];
+            if (tasks.some(task => task.id === id && task.status !== TaskStatus.COMPLETED)) {
+              lastVisibleActiveTask = id;
+              break;
+            }
+          }
+          setFocusedTaskId(lastVisibleActiveTask || null);
+        } else {
+          setFocusedTaskId(null);
+        }
+      }
+    }
+  }, [showCompleted, focusedTaskId, tasks, visibleTaskIds, getActiveRootTasks]);
   if (isListLoading) {
     return <div className="text-center p-8 text-slate-500">Loading Lists...</div>;
   }

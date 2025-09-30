@@ -74,6 +74,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         handleCancel();
       }
     };
@@ -81,6 +82,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
     const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         handleCancel();
       } else if (e.key === 'ArrowUp' && !name && onFocusParent) {
         e.preventDefault();
@@ -91,6 +93,7 @@ const TodoForm = forwardRef<HTMLInputElement, TodoFormProps>(
     const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         handleCancel();
       }
     };

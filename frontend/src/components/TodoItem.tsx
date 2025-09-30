@@ -319,6 +319,7 @@ export default function TodoItem({
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     cancelEditing();
                   }
                 }}
@@ -336,6 +337,7 @@ export default function TodoItem({
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     cancelEditing();
                   }
                 }}
