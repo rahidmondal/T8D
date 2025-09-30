@@ -6,12 +6,16 @@ import { createTaskList, deleteTaskList, getAllTaskLists, updateTaskList } from 
 
 const LAST_ACTIVE_LIST_KEY = 't8d-last-active-list';
 
+let isInitializing = false;
+
 export const TaskListProvider = ({ children }: { children: ReactNode }) => {
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [activeListId, setActiveListIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const initializeLists = useCallback(async () => {
+    if (isInitializing) return;
+    isInitializing = true;
     setIsLoading(true);
     try {
       let lists = await getAllTaskLists();
@@ -39,6 +43,7 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to initialize task lists:', error);
     } finally {
       setIsLoading(false);
+      isInitializing = false;
     }
   }, []);
 

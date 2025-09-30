@@ -15,9 +15,9 @@ interface TodoItemProps {
   loadTasks: () => Promise<void>;
   onDragOver: ((taskId: string | null) => void) | undefined;
   dragTarget?: string | null | undefined;
-  expandedState?: Record<string, boolean>;
-  setExpandedState?: (state: Record<string, boolean>) => void;
-  focusedTaskId?: string | null;
+  expandedState: Record<string, boolean> | undefined;
+  setExpandedState: ((state: Record<string, boolean>) => void) | undefined;
+  focusedTaskId?: string | null | undefined;
   setFocusedTaskId: (id: string | null) => void;
   registerItemRef: (el: HTMLDivElement | null, id: string) => void;
   onAddSibling: (taskId: string) => void;
@@ -215,7 +215,7 @@ export default function TodoItem({
 
   const handleFormCancel = () => {
     setShowAddForm(false);
-    setFocusedTaskId(task.id);
+    itemRef.current?.focus();
   };
 
   const handleItemKeyDown = (e: React.KeyboardEvent) => {
@@ -315,6 +315,7 @@ export default function TodoItem({
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     cancelEditing();
                   }
                 }}
@@ -332,6 +333,7 @@ export default function TodoItem({
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     cancelEditing();
                   }
                 }}
@@ -568,6 +570,7 @@ export default function TodoItem({
               registerItemRef={registerItemRef}
               onAddSibling={onAddSibling}
               onIndentTask={onIndentTask}
+              onTaskAdded={onTaskAdded}
             />
           ))}
         </div>
