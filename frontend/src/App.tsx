@@ -6,7 +6,7 @@ import { Bars3Icon } from '@heroicons/react/24/outline';
 import Settings from '@src/components/Settings';
 import ShortcutMenu from '@src/components/ShortcutMenu';
 import Sidebar from '@src/components/Sidebar';
-import { TaskListProvider } from '@src/components/TaskListProvider';
+import TaskListProvider from '@src/components/TaskListProvider';
 import TodoList from '@src/components/TodoList';
 import { useTheme } from '@src/hooks/useTheme';
 

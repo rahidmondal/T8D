@@ -8,7 +8,7 @@ const LAST_ACTIVE_LIST_KEY = 't8d-last-active-list';
 
 let isInitializing = false;
 
-export const TaskListProvider = ({ children }: { children: ReactNode }) => {
+function TaskListProvider({ children }: { children: ReactNode }) {
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [activeListId, setActiveListIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,4 +106,6 @@ export const TaskListProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return <TaskListContext.Provider value={value}>{children}</TaskListContext.Provider>;
-};
+}
+
+export default TaskListProvider;
