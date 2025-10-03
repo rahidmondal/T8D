@@ -37,7 +37,6 @@ function TaskListProvider({ children }: { children: ReactNode }) {
       setTaskLists(lists);
       if (currentActiveId) {
         setActiveListIdState(currentActiveId);
-        localStorage.setItem(LAST_ACTIVE_LIST_KEY, currentActiveId);
       }
     } catch (error: unknown) {
       console.error('Failed to initialize task lists:', error);
