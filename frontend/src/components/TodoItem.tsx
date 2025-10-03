@@ -20,7 +20,6 @@ interface TodoItemProps {
   focusedTaskId?: string | null | undefined;
   setFocusedTaskId: (id: string | null) => void;
   registerItemRef: (el: HTMLDivElement | null, id: string) => void;
-  onAddSibling: (taskId: string) => void;
   onIndentTask: (taskId: string) => void;
   onTaskAdded: (newTask: Task) => void;
 }
@@ -39,7 +38,6 @@ export default function TodoItem({
   focusedTaskId,
   setFocusedTaskId,
   registerItemRef,
-  onAddSibling,
   onIndentTask,
   onTaskAdded,
 }: TodoItemProps) {
@@ -221,54 +219,50 @@ export default function TodoItem({
   const handleItemKeyDown = (e: React.KeyboardEvent) => {
     let isHandled = true;
 
-    if (e.shiftKey && e.key === 'Enter') {
-      onAddSibling(task.id);
-    } else {
-      switch (e.key) {
-        case 'Enter': {
-          startEditing(e);
-          break;
+    switch (e.key) {
+      case 'Enter': {
+        startEditing(e);
+        break;
+      }
+      case ' ': {
+        void handleStatusChange();
+        break;
+      }
+      case 'a': {
+        toggleAddForm();
+        break;
+      }
+      case 'Delete': {
+        void handleDelete();
+        break;
+      }
+      case 'ArrowLeft': {
+        if (isExpanded) {
+          setExpanded(false);
+        } else if (task.parentId) {
+          setFocusedTaskId(task.parentId);
         }
-        case ' ': {
-          void handleStatusChange();
-          break;
+        break;
+      }
+      case 'ArrowRight': {
+        if (!isExpanded && childTasks.length > 0) {
+          setExpanded(true);
+        } else if (childTasks.length > 0) {
+          setFocusedTaskId(childTasks[0].id);
         }
-        case 'a': {
-          toggleAddForm();
-          break;
+        break;
+      }
+      case 'Tab': {
+        if (e.shiftKey) {
+          void promoteTask();
+        } else {
+          onIndentTask(task.id);
         }
-        case 'Delete': {
-          void handleDelete();
-          break;
-        }
-        case 'ArrowLeft': {
-          if (isExpanded) {
-            setExpanded(false);
-          } else if (task.parentId) {
-            setFocusedTaskId(task.parentId);
-          }
-          break;
-        }
-        case 'ArrowRight': {
-          if (!isExpanded && childTasks.length > 0) {
-            setExpanded(true);
-          } else if (childTasks.length > 0) {
-            setFocusedTaskId(childTasks[0].id);
-          }
-          break;
-        }
-        case 'Tab': {
-          if (e.shiftKey) {
-            void promoteTask();
-          } else {
-            onIndentTask(task.id);
-          }
-          break;
-        }
-        default: {
-          isHandled = false;
-          break;
-        }
+        break;
+      }
+      default: {
+        isHandled = false;
+        break;
       }
     }
 
@@ -568,7 +562,6 @@ export default function TodoItem({
               focusedTaskId={focusedTaskId}
               setFocusedTaskId={setFocusedTaskId}
               registerItemRef={registerItemRef}
-              onAddSibling={onAddSibling}
               onIndentTask={onIndentTask}
               onTaskAdded={onTaskAdded}
             />

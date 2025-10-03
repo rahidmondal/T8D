@@ -23,7 +23,6 @@ const taskShortcuts = [
   { key: 'Enter', description: 'Edit task' },
   { key: 'a', description: 'Add a subtask' },
   { key: 'Shift + C', description: 'Toggle Completed' },
-  { key: 'Shift + Enter', description: 'Add a sibling task' },
   { key: 'Tab', description: 'Indent task' },
   { key: 'Shift + Tab', description: 'Outdent task (Promote)' },
   { key: 'Delete', description: 'Delete task' },
