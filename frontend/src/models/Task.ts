@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 export enum TaskStatus {
   NOT_COMPLETED = 'not-completed',
   COMPLETED = 'completed',
