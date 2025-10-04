@@ -7,6 +7,8 @@ import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
 
+import RootTaskCount from './RootTaskCount';
+
 interface TodoListProps {
   onTaskChange?: () => void;
   formRef: React.RefObject<HTMLInputElement | null>;
@@ -79,6 +81,14 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
       itemRefs.current[focusedTaskId]?.focus();
     }
   }, [focusedTaskId]);
+
+  const getRootTotalCount = useCallback(() => {
+    return tasks.filter(task => !task.parentId).length;
+  }, [tasks]);
+
+  const getRootCompletedCount = useCallback(() => {
+    return tasks.filter(task => !task.parentId && task.status === TaskStatus.COMPLETED).length;
+  }, [tasks]);
 
   const handleLocalTaskChange = useCallback(
     (_formIdToFocus?: string | null) => {
@@ -367,7 +377,10 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
   return (
     <div ref={listRef} onKeyDown={handleListKeyDown} tabIndex={-1} className="h-full flex flex-col focus:outline-none">
       <header className="flex-shrink-0 mb-4 pt-4 px-4 pl-16 lg:pl-4">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
+          <RootTaskCount completed={getRootCompletedCount()} total={getRootTotalCount()} />
+        </div>
         <DateTime />
       </header>
 
