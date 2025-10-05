@@ -1,0 +1,20 @@
+# Node / workspace
+node_modules
+**/node_modules
+.pnpm-store
+.pnpm-debug.log
+
+# Build output
+dist
+**/dist
+frontend/dist
+
+# Git / editor / misc
+.git
+.vscode
+.DS_Store
+
+# env / logs
+.env
+.env.local
+*.log

@@ -5,7 +5,9 @@ import TodoForm from '@src/components/TodoForm';
 import TodoItem from '@src/components/TodoItem';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
-import { createTask, deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
+import { deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
+
+import RootTaskCount from './RootTaskCount';
 
 interface TodoListProps {
   onTaskChange?: () => void;
@@ -79,6 +81,14 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
       itemRefs.current[focusedTaskId]?.focus();
     }
   }, [focusedTaskId]);
+
+  const getRootTotalCount = useCallback(() => {
+    return tasks.filter(task => !task.parentId).length;
+  }, [tasks]);
+
+  const getRootCompletedCount = useCallback(() => {
+    return tasks.filter(task => !task.parentId && task.status === TaskStatus.COMPLETED).length;
+  }, [tasks]);
 
   const handleLocalTaskChange = useCallback(
     (_formIdToFocus?: string | null) => {
@@ -248,31 +258,6 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
     return visibleIds;
   }, [getActiveRootTasks, getCompletedRootTasks, getChildTasks, expandedState, showCompleted]);
 
-  const handleAddSibling = useCallback(
-    async (siblingId: string) => {
-      if (!activeListId) return;
-      const siblingTask = tasks.find(t => t.id === siblingId);
-      if (!siblingTask) {
-        return;
-      }
-      const siblings = tasks.filter(t => t.parentId === siblingTask.parentId).sort((a, b) => a.order - b.order);
-      const siblingIndex = siblings.findIndex(t => t.id === siblingId);
-
-      let newOrder;
-      if (siblingIndex === siblings.length - 1) {
-        newOrder = siblingTask.order + 1;
-      } else {
-        const nextSibling = siblings[siblingIndex + 1];
-        newOrder = (siblingTask.order + nextSibling.order) / 2;
-      }
-
-      const newTask = await createTask('', activeListId, undefined, siblingTask.parentId);
-      await updateTask(newTask.id, { order: newOrder });
-      handleLocalTaskChange(newTask.id);
-    },
-    [tasks, activeListId, handleLocalTaskChange],
-  );
-
   const handleIndentTask = useCallback(
     async (taskId: string) => {
       if (visibleTaskIds.length === 0) {
@@ -392,7 +377,10 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
   return (
     <div ref={listRef} onKeyDown={handleListKeyDown} tabIndex={-1} className="h-full flex flex-col focus:outline-none">
       <header className="flex-shrink-0 mb-4 pt-4 px-4 pl-16 lg:pl-4">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{activeList.name}</h1>
+          <RootTaskCount completed={getRootCompletedCount()} total={getRootTotalCount()} />
+        </div>
         <DateTime />
       </header>
 
@@ -469,7 +457,6 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
                   registerItemRef={(el, id) => {
                     itemRefs.current[id] = el;
                   }}
-                  onAddSibling={id => void handleAddSibling(id)}
                   onIndentTask={id => void handleIndentTask(id)}
                   onTaskAdded={handleTaskAdded}
                 />
@@ -551,7 +538,6 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
                         registerItemRef={(el, id) => {
                           itemRefs.current[id] = el;
                         }}
-                        onAddSibling={id => void handleAddSibling(id)}
                         onIndentTask={id => void handleIndentTask(id)}
                         onTaskAdded={handleTaskAdded}
                       />

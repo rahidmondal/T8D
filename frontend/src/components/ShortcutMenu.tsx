@@ -22,8 +22,7 @@ const taskShortcuts = [
   { key: 'Space', description: 'Toggle task completion' },
   { key: 'Enter', description: 'Edit task' },
   { key: 'a', description: 'Add a subtask' },
-  { key: 'Shift + c', description: 'Toggle Completed' },
-  { key: 'Shift + Enter', description: 'Add a sibling task' },
+  { key: 'Shift + C', description: 'Toggle Completed' },
   { key: 'Tab', description: 'Indent task' },
   { key: 'Shift + Tab', description: 'Outdent task (Promote)' },
   { key: 'Delete', description: 'Delete task' },
@@ -46,7 +45,7 @@ const ShortcutDisplay = ({ shortcut }: { shortcut: { key: string; description: s
   </div>
 );
 
-export default function ShortcutMenu({ isOpen, onClose }: ShortcutMenuProps) {
+function ShortcutMenu({ isOpen, onClose }: ShortcutMenuProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -131,3 +130,5 @@ export default function ShortcutMenu({ isOpen, onClose }: ShortcutMenuProps) {
     </div>
   );
 }
+
+export default ShortcutMenu;
