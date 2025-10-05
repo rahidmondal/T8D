@@ -112,6 +112,10 @@ importers:
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
+    devDependencies:
+      '@testing-library/jest-dom':
+        specifier: ^6.8.0
+        version: 6.8.0
 
 packages:
 
