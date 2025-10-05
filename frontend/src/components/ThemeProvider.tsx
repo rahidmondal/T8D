@@ -1,8 +1,8 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 import { Theme, ThemeContext } from '@src/context/ThemeContext';
 
-export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = localStorage.getItem('theme');
     const initialTheme = storedTheme === 'dark' ? 'dark' : 'light';
@@ -29,4 +29,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
-};
+}
+
+export default ThemeProvider;

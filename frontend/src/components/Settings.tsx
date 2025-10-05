@@ -1,9 +1,7 @@
-import React from 'react';
-
 import { Backup } from '@src/components/Backup';
 import { useTheme } from '@src/hooks/useTheme';
 
-const Settings: React.FC = () => {
+function Settings() {
   const { theme, toggleTheme } = useTheme();
 
   const handleToggleClick = () => {
@@ -37,6 +35,6 @@ const Settings: React.FC = () => {
       <Backup />
     </div>
   );
-};
+}
 
 export default Settings;

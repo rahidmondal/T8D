@@ -1,0 +1,22 @@
+# Changelog
+
+All notable changes to T8D will be documented in this file.
+
+## [v1.0.0] - 05 October 2025
+
+### Added
+
+- Complete offline-first task management system
+- Progressive Web App (PWA) with installation support
+- Task lists and subtasks with nested hierarchy
+- Dark/light theme
+- Backup and restore functionality (JSON export/import)
+- Keyboard shortcuts for quick task creation
+- IndexedDB storage for offline data persistence
+- Responsive design for mobile and desktop
+
+## Links
+
+- **Live Demo**: [https://rahidmondal.com/T8D/](https://rahidmondal.com/T8D/)
+- **Repository**: [https://github.com/rahidmondal/T8D](https://github.com/rahidmondal/T8D)
+- **Issues**: [GitHub Issues](https://github.com/rahidmondal/T8D/issues)

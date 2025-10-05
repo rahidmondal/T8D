@@ -1,69 +1,94 @@
 # T8D
 
-T8D is an offline-first to-do list application focused on private task management.
+A modern, offline-first to-do list application focused on private task management. Built as a progressive web app (PWA) with React and TypeScript.
 
-## 🚀 Features
+## 🚀 Quick Start
 
-- Offline-first: Manage tasks without internet connectivity
-- Private task management
-- Modern UI with React + Tailwind CSS
+### Prerequisites
 
-## 🛠️ Tech Stack
+- [Node.js](https://nodejs.org/) (v18+)
+- [pnpm](https://pnpm.io/) (recommended package manager)
+- [Docker](https://docker.com/) (optional, for containerized deployment)
 
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, PWA support
-- ~~**Backend:** Node.js (see [`backend`](backend/)), TypeScript~~
-- **Build Tool:** pnpm (monorepo)
-- **Linting & Formatting:** ESLint, Prettier
-- **Testing:** Vitest, Testing Library
-- **Deployment:** Docker\*, GitHub Pages (frontend)
+### Development Setup
 
-## 📦 Monorepo Structure
+1. **Clone and install dependencies:**
 
-```
-/
-├── backend/      # Backend API & sync server
-├── frontend/     # React client app
-├── WORKFLOW.md   # Team workflow, branching, commit, release guide
-├── package.json  # Monorepo scripts
-└── ...
-```
-
-## 🧑‍💻 Development Workflow
-
-See [`WORKFLOW.md`](WORKFLOW.md) for:
-
-- Branch naming conventions
-- Commit message format
-- Release & changelog process
-- PR checklist
-
-## 📄 Getting Started
-
-1. **Install dependencies:**
-   ```sh
+   ```bash
+   git clone https://github.com/rahidmondal/T8D.git
+   cd T8D
    pnpm install
    ```
+
 2. **Start development servers:**
 
-   ```sh
-   pnpm run dev:all
+   ```bash
+   # Start both frontend and backend
+   pnpm run dev
+
+   # Or start individually
+   pnpm run frontend:dev
+   pnpm run backend:dev
    ```
 
-   - Or run frontend/backend individually:
-     ```sh
-     pnpm run frontend:dev
-     pnpm run backend:dev
-     ```
+3. **Access the application:**
+   - Frontend: http://localhost:5173/T8D/
+   - Backend API: http://localhost:3000/api/ (when available)
 
-3. **Lint, test, and build:**
-   ```sh
-   pnpm run lint
-   pnpm run test
-   pnpm run build
-   ```
+## 🏗️ Project Structure
 
-## 📚 Documentation
+This is a **pnpm monorepo** with the following structure:
 
-- Frontend: [frontend/README.md](frontend/README.md)
-- Backend: See [`backend`](backend/)
-- Workflow: [`WORKFLOW.md`](WORKFLOW.md)
+```
+T8D/
+├── frontend/           # React + TypeScript client app
+│   ├── src/
+│   ├── tests/
+│   └── README.md      # Frontend-specific documentation
+├── backend/           # Node.js API server (in development)
+├── docker-compose.yaml # Container orchestration
+├── WORKFLOW.md        # Development workflow guide
+├── CONTRIBUTING.md    # Contribution guidelines
+└── package.json       # Monorepo scripts
+```
+
+## 🛠️ Available Scripts
+
+```bash
+# Development
+pnpm run dev      # Start both frontend and backend
+pnpm run frontend:dev   # Start frontend only
+pnpm run backend:dev    # Start backend only
+
+# Quality Assurance
+pnpm run lint          # Lint all packages
+pnpm run test          # Run all tests
+pnpm run format        # Format code with Prettier
+
+# Production
+pnpm run build         # Build all packages
+pnpm run preview       # Preview production build
+```
+
+## 🐳 Docker Deployment
+
+### Self-Hosted with Docker
+
+```bash
+# Build and run the application
+docker-compose up --build
+
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) and [WORKFLOW.md](WORKFLOW.md) for:
+
+- Code of conduct
+- Development workflow
+- Pull request process
+- Issue reporting guidelines
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
