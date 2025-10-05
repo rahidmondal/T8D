@@ -57,7 +57,7 @@ feat(auth): add social login support
 
 ---
 
-### ✅ Allowed Commit Types
+### ✅ Commit Types
 
 - `feat` – New feature
 - `fix` – Bug fix
@@ -76,36 +76,17 @@ feat(auth): add social login support
 
 ## 🚀 Versioning & Releases
 
-We follow semantic versioning:  
+We follow semantic versioning:
 `v<major>.<minor>.<patch>`
 
 - **Patch** – Minor fixes or small features
 - **Minor** – Completed feature/module milestones
 - **Major** – Public stable release or major revamp
 
----
+## Development Process
 
-## 📝 Changelog Format
-
-Update `CHANGELOG.md` with every `dev → main` merge:
-
-```
-## v0.3.2 – April 4, 2025
-- Added notification settings
-- Fixed crash on mobile
-- Improved token refresh logic
-```
-
----
-
-## ✅ Final Checklist (Before PR Merge)
-
-- [ ] Branch name follows convention
-- [ ] Commit messages follow format
-- [ ] Pull request targets `dev`
-- [ ] Version updated only when merging to `main`
-- [ ] `CHANGELOG.md` is updated
-
----
-
-This guide helps us stay efficient, clean, and collaborative. If unsure—check here or ask! Let’s keep shipping awesome stuff 🚀
+1. Create branch from `dev` Preferable with the issue name.
+2. Make changes with proper commits
+3. Test your changes
+4. Create PR to `dev`
+5. After review, merge to `dev`
