@@ -34,3 +34,5 @@ coverage/
 
 # Database
 postgres-data/
+/generated/prisma
+
