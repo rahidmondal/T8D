@@ -1,12 +1,12 @@
-import { type User } from '@prisma/client';
 import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express as ExpressApp, type Request, type Response } from 'express';
 import passport from 'passport';
 
-import { editUser, loginUser, registerUser } from './auth/auth.controller.js';
-import { authenticateJwt, initializePassport } from './auth/passport.js';
+import { initializePassport } from './auth/passport.js';
 import { disconnectPrisma } from './db/queries.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import apiRouter from './routes/index.js';
 
 // --- 1.Initial Configuration ---
 configDotenv();
@@ -19,40 +19,21 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// -- 3.Authentication Routes ---
-app.post('/api/v1/auth/register', registerUser);
+// --- 3.API Routes ---
+app.use('/api/v1', apiRouter);
 
-app.post('/api/v1/auth/login', loginUser);
-
-app.post('/api/v1/auth/logout', (_req: Request, res: Response) => {
-  res.status(200).json({ message: 'Logout successful' });
-});
-
-// --- 4.Users Routes ---
-app.patch('/api/v1/user/edit', authenticateJwt, editUser);
-
-// --- 5.Protected Routes ---
-
-app.get('/api/v1/sync', authenticateJwt, (req: Request, res: Response) => {
-  const user = req.user as User;
-
-  res.status(200).json({
-    message: 'Sync successful',
-    userId: user.id,
-    email: user.email,
-  });
-});
-
-// --- 6.Server Health & Startup ---
+// --- 4.Server Health ---
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, message: 'Server is healthy' });
 });
 
+// --- 5.Error Handling ---
+app.use(errorHandler);
+
+// --- 6.Server Startup & Shutdown ---
 const server = app.listen(PORT, () => {
   console.info(`[t8d-sync-server] Server is running at http://localhost:${String(PORT)}`);
 });
-
-// --- 7.Graceful Shutdown Logic ---
 
 const shutdown = async () => {
   console.info('Shutting down server...');

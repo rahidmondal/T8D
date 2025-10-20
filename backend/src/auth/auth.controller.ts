@@ -6,8 +6,8 @@ import { z } from 'zod';
 import zxcvbn from 'zxcvbn';
 
 import { createUser, getUserByEmail, updateUser } from '../db/queries.js';
+import { AppError } from '../utils/AppError.js';
 
-// 1.Validation Schema
 const registerSchema = z.object({
   email: z.email('Invalid email address'),
 
@@ -66,117 +66,93 @@ const editUserSchema = z
 
 const createSafeUser = ({ passwordHash: _, ...safeUser }: User) => safeUser;
 
-// 2.Register Handler
 export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const validation = registerSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        message: 'Invalid request data',
-        errors: validation.error.issues,
-      });
-    }
-
-    const { email, password, name } = validation.data;
-
-    const existingUser: User | null = await getUserByEmail(email);
-    if (existingUser) {
-      return res.status(409).json({ message: 'User already exists' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    const newUser: User = await createUser({
-      email,
-      passwordHash,
-      name,
-    });
-
-    const safeUser = createSafeUser(newUser);
-    return res.status(201).json(safeUser);
-  } catch (error) {
-    console.error('[registerUser] Error: ', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+  const validation = registerSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw validation.error;
   }
+
+  const { email, password, name } = validation.data;
+
+  const existingUser: User | null = await getUserByEmail(email);
+  if (existingUser) {
+    throw new AppError(409, 'User already exists');
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(password, salt);
+
+  const newUser: User = await createUser({
+    email,
+    passwordHash,
+    name,
+  });
+
+  const safeUser = createSafeUser(newUser);
+  res.status(201).json(safeUser);
 };
 
-// 3. Login Handler
+// --- 3. Login Handler (Refactored) ---
 export const loginUser = async (req: Request, res: Response) => {
-  try {
-    const validation = loginSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        message: 'Invalid request data',
-        errors: validation.error.issues,
-      });
-    }
-
-    const { email, password } = validation.data;
-
-    const user = await getUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid User' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid Password' });
-    }
-
-    const payload = { id: user.id };
-    const secret = process.env.JWT_SECRET as string;
-
-    const token = jwt.sign(payload, secret, {
-      expiresIn: '30d',
-    });
-
-    const safeUser = createSafeUser(user);
-
-    return res.status(200).json({
-      message: 'Login Successful',
-      token: `Bearer ${token}`,
-      user: safeUser,
-    });
-  } catch (error) {
-    console.error('[LoginUser] Error: ', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+  const validation = loginSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw validation.error;
   }
+
+  const { email, password } = validation.data;
+
+  const user = await getUserByEmail(email);
+  if (!user) {
+    // SECURITY FIX: Generic error message
+    throw new AppError(401, 'Invalid credentials');
+  }
+
+  const isMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!isMatch) {
+    // SECURITY FIX: Generic error message
+    throw new AppError(401, 'Invalid credentials');
+  }
+
+  const payload = { id: user.id };
+  const secret = process.env.JWT_SECRET as string;
+
+  const token = jwt.sign(payload, secret, {
+    expiresIn: '30d',
+  });
+
+  const safeUser = createSafeUser(user);
+
+  res.status(200).json({
+    message: 'Login Successful',
+    token: `Bearer ${token}`,
+    user: safeUser,
+  });
 };
 
-//  4 Edit User
-
+// --- 4. Edit User (Refactored) ---
 export const editUser = async (req: Request, res: Response) => {
-  try {
-    const userFromToken = req.user as User;
+  const userFromToken = req.user as User;
 
-    const validation = editUserSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        message: 'Invalid request data',
-        errors: validation.error.issues,
-      });
-    }
-
-    const { name, password } = validation.data;
-
-    const updateData: { name?: string; passwordHash?: string } = {};
-
-    if (name) {
-      updateData.name = name;
-    }
-
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      updateData.passwordHash = await bcrypt.hash(password, salt);
-    }
-
-    const updatedUser = await updateUser(userFromToken.id, updateData);
-
-    const safeUser = createSafeUser(updatedUser);
-    return res.status(200).json(safeUser);
-  } catch (error) {
-    console.error('[editUser] Error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+  const validation = editUserSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw validation.error;
   }
+
+  const { name, password } = validation.data;
+
+  const updateData: { name?: string; passwordHash?: string } = {};
+
+  if (name) {
+    updateData.name = name;
+  }
+
+  if (password) {
+    const salt = await bcrypt.genSalt(10);
+    updateData.passwordHash = await bcrypt.hash(password, salt);
+  }
+
+  const updatedUser = await updateUser(userFromToken.id, updateData);
+
+  const safeUser = createSafeUser(updatedUser);
+  res.status(200).json(safeUser);
 };
