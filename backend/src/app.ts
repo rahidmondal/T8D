@@ -3,6 +3,7 @@ import { configDotenv } from 'dotenv';
 import express, { type Express as ExpressApp, type Request, type Response } from 'express';
 import passport from 'passport';
 
+import { registerUser } from './auth/auth.controller.js';
 import { disconnectPrisma } from './db/queries.js';
 
 // --- 1.Initial Configuration ---
@@ -16,9 +17,7 @@ app.use(express.json());
 app.use(passport.initialize());
 
 // -- 3.Authentication Routes ---
-app.post('/api/v1/auth/register', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not Implemented' });
-});
+app.post('/api/v1/auth/register', registerUser);
 
 app.post('/api/v1/auth/login', (_req: Request, res: Response) => {
   res.status(501).json({ message: 'Not Implemented' });
