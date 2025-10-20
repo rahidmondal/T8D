@@ -1,6 +1,6 @@
 {
   "name": "t8d-sync-server",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "T8D Sync Server - Simple Server to Sync Task across Devices",
   "type": "module",
   "scripts": {
