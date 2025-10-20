@@ -1,13 +1,16 @@
+import { type User } from '@prisma/client';
 import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import express, { type Express as ExpressApp, type Request, type Response } from 'express';
 import passport from 'passport';
 
 import { loginUser, registerUser } from './auth/auth.controller.js';
+import { authenticateJwt, initializePassport } from './auth/passport.js';
 import { disconnectPrisma } from './db/queries.js';
 
 // --- 1.Initial Configuration ---
 configDotenv();
+initializePassport();
 const app: ExpressApp = express();
 const PORT = Number(process.env.SERVER_PORT ?? 3000);
 
@@ -31,8 +34,15 @@ app.put('/api/v1/user/edit', (_req: Request, res: Response) => {
 });
 
 // --- 5.Protected Routes ---
-app.get('/api/v1/sync', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not Implemented' });
+
+app.get('/api/v1/sync', authenticateJwt, (req: Request, res: Response) => {
+  const user = req.user as User;
+
+  res.status(200).json({
+    message: 'Sync successful',
+    userId: user.id,
+    email: user.email,
+  });
 });
 
 // --- 6.Server Health & Startup ---

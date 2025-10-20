@@ -1,4 +1,5 @@
 import { type User } from '@prisma/client';
+import { type RequestHandler } from 'express';
 import passport from 'passport';
 import { ExtractJwt, Strategy as JwtStrategy, type VerifiedCallback } from 'passport-jwt';
 
@@ -48,3 +49,4 @@ const strategy = new JwtStrategy(options, (payload: JwtPayload, done: VerifiedCa
 export const initializePassport = () => {
   passport.use(strategy);
 };
+export const authenticateJwt: RequestHandler = passport.authenticate('jwt', { session: false }) as RequestHandler;
