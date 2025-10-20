@@ -1,89 +1,75 @@
+import cors from 'cors';
 import { configDotenv } from 'dotenv';
-import Express from 'express';
-import { createUser, deleteUser, disconnectPrisma, getAllUsers, getUserById, updateUser } from './db/queries.js';
+import express, { type Express as ExpressApp, type Request, type Response } from 'express';
+import passport from 'passport';
+
+import { disconnectPrisma } from './db/queries.js';
+
+// --- 1.Initial Configuration ---
 configDotenv();
-
-const app = Express();
-app.use(Express.json());
-
+const app: ExpressApp = express();
 const PORT = Number(process.env.SERVER_PORT ?? 3000);
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+// --- 2.Core Middleware ---
+app.use(cors());
+app.use(express.json());
+app.use(passport.initialize());
+
+// -- 3.Authentication Routes ---
+app.post('/api/v1/auth/register', (_req: Request, res: Response) => {
+  res.status(501).json({ message: 'Not Implemented' });
 });
 
-app.get('/', (_req, res) => {
-  res.send('Hello from t8d-sync-server!');
+app.post('/api/v1/auth/login', (_req: Request, res: Response) => {
+  res.status(501).json({ message: 'Not Implemented' });
 });
 
-app.get('/users', async (_req, res) => {
-  try {
-    const users = await getAllUsers();
-    res.json(users);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
+app.post('/api/v1/auth/logout', (_req: Request, res: Response) => {
+  res.status(501).json({ message: 'Not Implemented' });
 });
 
-app.get('/users/:id', async (req, res) => {
-  try {
-    const user = await getUserById(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch user' });
-  }
+// --- 4.Users Routes ---
+app.put('/api/v1/user/edit', (_req: Request, res: Response) => {
+  res.status(501).json({ message: 'Not Implemented' });
 });
 
-app.post('/users', async (req, res) => {
-  try {
-    const user = await createUser(req.body);
-    res.status(201).json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to create user' });
-  }
+// --- 5.Protected Routes ---
+app.get('/api/v1/sync', (_req: Request, res: Response) => {
+  res.status(501).json({ message: 'Not Implemented' });
 });
 
-app.put('/users/:id', async (req, res) => {
-  try {
-    const user = await updateUser(req.params.id, req.body);
-    res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to update user' });
-  }
-});
-
-app.delete('/users/:id', async (req, res) => {
-  try {
-    const user = await deleteUser(req.params.id);
-    res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
+// --- 6.Server Health & Startup ---
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ ok: true, message: 'Server is healthy' });
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`[t8d-sync-server] Server is running at http://localhost:${PORT}`);
+  console.info(`[t8d-sync-server] Server is running at http://localhost:${String(PORT)}`);
 });
 
+// --- 7.Graceful Shutdown Logic ---
+
 const shutdown = async () => {
-  console.log('Shutting down server...');
+  console.info('Shutting down server...');
   await disconnectPrisma();
   server.close(() => {
-    console.log('Server closed');
+    console.info('Server closed');
     process.exit(0);
   });
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => {
+  void shutdown();
+});
+process.on('SIGTERM', () => {
+  void shutdown();
+});
 
-server.on('error', (error: Error) => {
-  console.error('Failed to start server:', error);
+server.on('error', (err: unknown) => {
+  if (err instanceof Error) {
+    console.error('Failed to start server:', err.message);
+  } else {
+    console.error('Failed to start server (non-Error):', err);
+  }
   process.exit(1);
 });
