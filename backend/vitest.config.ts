@@ -9,5 +9,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['tests/setup/setup.ts'],
+    env: {
+      JWT_SECRET: 'a-dummy-secret-for-testing',
+    },
   },
 });
