@@ -25,6 +25,10 @@ export async function deleteUser(id: string): Promise<User> {
   return prisma.user.delete({ where: { id } });
 }
 
+export async function getUserByEmail(email: string): Promise<User | null> {
+  return prisma.user.findUnique({ where: { email } });
+}
+
 export async function disconnectPrisma() {
   await prisma.$disconnect();
 }
