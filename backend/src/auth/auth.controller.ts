@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import zxcvbn from 'zxcvbn';
 
-import { createUser, getUserByEmail } from '../db/queries.js';
+import { createUser, getUserByEmail, updateUser } from '../db/queries.js';
 
 // 1.Validation Schema
 const registerSchema = z.object({
@@ -37,6 +37,32 @@ const loginSchema = z.object({
   email: z.email('A valid email is required'),
   password: z.string().min(12, 'Password is required'),
 });
+
+const editUserSchema = z
+  .object({
+    password: z
+      .string()
+      .min(12, 'Password must be at least 12 characters long')
+      .refine(
+        value => {
+          const result = zxcvbn(value);
+          return result.score >= 3;
+        },
+        {
+          message: 'Password is too weak. Try adding more variety or randomness.',
+        },
+      )
+      .optional(),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .transform(value => value.replace(/<[^>]*>?/gm, ''))
+      .optional(),
+  })
+  .refine(data => data.name || data.password, {
+    message: 'At least one field (name or password) must be provided',
+    path: ['name', 'password'],
+  });
 
 const createSafeUser = ({ passwordHash: _, ...safeUser }: User) => safeUser;
 
@@ -115,5 +141,42 @@ export const loginUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[LoginUser] Error: ', error);
     return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+//  4 Edit User
+
+export const editUser = async (req: Request, res: Response) => {
+  try {
+    const userFromToken = req.user as User;
+
+    const validation = editUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        message: 'Invalid request data',
+        errors: validation.error.issues,
+      });
+    }
+
+    const { name, password } = validation.data;
+
+    const updateData: { name?: string; passwordHash?: string } = {};
+
+    if (name) {
+      updateData.name = name;
+    }
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.passwordHash = await bcrypt.hash(password, salt);
+    }
+
+    const updatedUser = await updateUser(userFromToken.id, updateData);
+
+    const safeUser = createSafeUser(updatedUser);
+    return res.status(200).json(safeUser);
+  } catch (error) {
+    console.error('[editUser] Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

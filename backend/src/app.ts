@@ -4,7 +4,7 @@ import { configDotenv } from 'dotenv';
 import express, { type Express as ExpressApp, type Request, type Response } from 'express';
 import passport from 'passport';
 
-import { loginUser, registerUser } from './auth/auth.controller.js';
+import { editUser, loginUser, registerUser } from './auth/auth.controller.js';
 import { authenticateJwt, initializePassport } from './auth/passport.js';
 import { disconnectPrisma } from './db/queries.js';
 
@@ -25,13 +25,11 @@ app.post('/api/v1/auth/register', registerUser);
 app.post('/api/v1/auth/login', loginUser);
 
 app.post('/api/v1/auth/logout', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not Implemented' });
+  res.status(200).json({ message: 'Logout successful' });
 });
 
 // --- 4.Users Routes ---
-app.put('/api/v1/user/edit', (_req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not Implemented' });
-});
+app.patch('/api/v1/user/edit', authenticateJwt, editUser);
 
 // --- 5.Protected Routes ---
 
