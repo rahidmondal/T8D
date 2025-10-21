@@ -33,14 +33,11 @@ const strategy = new JwtStrategy(options, (payload: JwtPayload, done: VerifiedCa
 
       if (user) {
         done(null, user, {});
-        return;
       } else {
         done(null, false, {});
-        return;
       }
     } catch (error) {
       done(error, false, {});
-      return;
     }
   })();
 });
