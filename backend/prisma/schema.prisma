@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,13 +11,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   passwordHash String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  taskLists  TaskList[]
+  name         String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  taskLists    TaskList[]
 }
 
 enum TaskStatus {
@@ -29,41 +26,44 @@ enum TaskStatus {
 }
 
 model TaskList {
-  id      String    @id @default(uuid())
-  name    String
-  description String?
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
   lastModified DateTime
   hash         String
   order        Float
+  is_deleted   Boolean  @default(false)
 
-
-  userId    String
-  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks Task[]
+
   @@index([userId])
+  @@index([lastModified])
+  @@index([is_deleted])
 }
 
 model Task {
-  id String @id @default(uuid())
-  name String
-  description String?
-  status TaskStatus
-  createdAt  DateTime
+  id           String     @id @default(uuid())
+  name         String
+  description  String?
+  status       TaskStatus
+  createdAt    DateTime
   lastModified DateTime
-  dueDate DateTime?
-  hash String
-  order Float
-  metadata Json?
-
+  dueDate      DateTime?
+  hash         String
+  order        Float
+  metadata     Json?
+  is_deleted   Boolean    @default(false)
   listId String
-  list TaskList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  list   TaskList @relation(fields: [listId], references: [id], onDelete: Cascade)
 
   parentId String?
-  parent Task? @relation("SubTasks", fields: [parentId], references: [id], onDelete: SetNull)
-  subTask Task[] @relation("SubTasks")
+  parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: SetNull)
+  subTasks Task[]  @relation("SubTasks")
 
   @@index([listId])
   @@index([parentId])
+  @@index([lastModified])
+  @@index([is_deleted])
 }
