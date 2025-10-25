@@ -92,7 +92,7 @@ export const registerUser = async (req: Request, res: Response) => {
   res.status(201).json(safeUser);
 };
 
-// --- 3. Login Handler (Refactored) ---
+// --- 3. Login Handler  ---
 export const loginUser = async (req: Request, res: Response) => {
   const validation = loginSchema.safeParse(req.body);
   if (!validation.success) {
@@ -103,13 +103,11 @@ export const loginUser = async (req: Request, res: Response) => {
 
   const user = await getUserByEmail(email);
   if (!user) {
-    // SECURITY FIX: Generic error message
     throw new AppError(401, 'Invalid credentials');
   }
 
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) {
-    // SECURITY FIX: Generic error message
     throw new AppError(401, 'Invalid credentials');
   }
 
@@ -129,7 +127,7 @@ export const loginUser = async (req: Request, res: Response) => {
   });
 };
 
-// --- 4. Edit User (Refactored) ---
+// --- 4. Edit User ---
 export const editUser = async (req: Request, res: Response) => {
   const userFromToken = req.user as User;
 

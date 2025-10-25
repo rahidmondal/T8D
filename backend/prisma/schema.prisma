@@ -20,4 +20,50 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  taskLists  TaskList[]
+}
+
+enum TaskStatus {
+  not_completed
+  completed
+}
+
+model TaskList {
+  id      String    @id @default(uuid())
+  name    String
+  description String?
+  lastModified DateTime
+  hash         String
+  order        Float
+
+
+  userId    String
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  tasks Task[]
+  @@index([userId])
+}
+
+model Task {
+  id String @id @default(uuid())
+  name String
+  description String?
+  status TaskStatus
+  createdAt  DateTime
+  lastModified DateTime
+  dueDate DateTime?
+  hash String
+  order Float
+  metadata Json?
+
+  listId String
+  list TaskList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent Task? @relation("SubTasks", fields: [parentId], references: [id], onDelete: SetNull)
+  subTask Task[] @relation("SubTasks")
+
+  @@index([listId])
+  @@index([parentId])
 }
