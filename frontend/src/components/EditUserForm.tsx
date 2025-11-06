@@ -18,9 +18,15 @@ function EditUserForm({ onDone }: EditUserFormProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    const newName = name.trim();
+    const newPassword = password;
 
-    if (!name.trim() && !password) {
-      setError('You must provide a name or a new password.');
+    if (!newName && !newPassword) {
+      setError(`You must provide a name or a new password`);
+      return;
+    }
+    if (newPassword && newPassword.length < 12) {
+      setError('Password must be at least 12 characters long.');
       return;
     }
 
@@ -29,15 +35,16 @@ function EditUserForm({ onDone }: EditUserFormProps) {
     setIsSubmitting(true);
 
     const updates: { name?: string; password?: string } = {};
-    if (name.trim() !== (user?.name ?? '')) {
+    if (newName && newName !== (user?.name ?? '')) {
       updates.name = name.trim();
     }
-    if (password) {
+
+    if (newPassword) {
       updates.password = password;
     }
 
     if (Object.keys(updates).length === 0) {
-      setError('No changes were made.');
+      setSuccess('No changes were made.');
       setIsSubmitting(false);
       return;
     }
