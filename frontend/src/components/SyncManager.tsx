@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useAuth } from '@src/hooks/useAuth';
+import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
 
 import LoginForm from './LoginForm';
@@ -8,15 +9,38 @@ import RegisterForm from './RegisterForm';
 
 type AuthView = 'login' | 'register';
 
+interface SyncResponse {
+  message: string;
+  userId: string;
+  email: string;
+}
+
 function SyncManager() {
   const [view, setView] = useState<AuthView>('login');
   const [apiBaseUrl, setApiBaseUrl] = useState(() => getApiBaseUrl() ?? '');
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const { user, logout, isLoading } = useAuth();
 
   const handleBaseUrlSave = () => {
     saveApiBaseUrl(apiBaseUrl);
     alert('API URL saved!');
+  };
+
+  const handleTestSync = async () => {
+    setTestResult('Testing...');
+    try {
+      const data = await apiClient<SyncResponse>('/api/v1/sync');
+      if (data) {
+        setTestResult(`Success: ${data.message} (User: ${data.email})`);
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        setTestResult(`Error: ${err.message}`);
+      } else {
+        setTestResult('An unknown error occurred.');
+      }
+    }
   };
 
   if (isLoading) {
@@ -34,14 +58,22 @@ function SyncManager() {
     return (
       <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">
         <h2 className="text-2xl font-semibold mb-6">Sync Manager</h2>
-        <section className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-medium mb-4">Account</h3>
-          <p className="mb-2">
-            You are logged in as: <strong className="text-sky-600 dark:text-sky-400">{user.email}</strong>
+        <section className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm space-y-4">
+          <h3 className="text-lg font-medium">Account</h3>
+          <p>
+            Logged in as: <strong className="text-sky-600 dark:text-sky-400">{user.email}</strong>
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Data synchronization is not yet implemented.
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Data synchronization is not yet implemented.</p>
+
+          <button
+            type="button"
+            onClick={() => void handleTestSync()}
+            className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded transition-colors"
+          >
+            Test Connection
+          </button>
+          {testResult && <p className="text-sm text-slate-600 dark:text-slate-300 text-center">{testResult}</p>}
+
           <button
             type="button"
             onClick={logout}
@@ -58,7 +90,6 @@ function SyncManager() {
     <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">
       <h2 className="text-2xl font-semibold mb-6">Sync Manager</h2>
 
-      {/* --- API Settings Section --- */}
       <section className="mb-8">
         <h3 className="text-lg font-medium mb-4">API Settings</h3>
         <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
@@ -88,9 +119,7 @@ function SyncManager() {
         </div>
       </section>
 
-      {/* --- Auth Section --- */}
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm">
-        {/* Tab buttons */}
         <div className="flex border-b border-slate-300 dark:border-slate-700">
           <button
             onClick={() => {
@@ -118,7 +147,6 @@ function SyncManager() {
           </button>
         </div>
 
-        {/* Content Area */}
         <div>
           {view === 'login' && <LoginForm />}
           {view === 'register' && <RegisterForm />}
