@@ -21,12 +21,29 @@ function SyncManager() {
   const [apiBaseUrl, setApiBaseUrl] = useState(() => getApiBaseUrl() ?? '');
   const [testResult, setTestResult] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [apiSaverError, setApiSaverError] = useState<string | null>(null);
+  const [apiSaverSuccess, setApiSaverSuccess] = useState<string | null>(null);
 
   const { user, logout, isLoading } = useAuth();
 
   const handleBaseUrlSave = () => {
-    saveApiBaseUrl(apiBaseUrl);
-    alert('API URL saved!');
+    setApiSaverError(null);
+    setApiSaverSuccess(null);
+    const trimmedUrl = apiBaseUrl.trim();
+    if (!trimmedUrl) {
+      setApiSaverError('API URL Cannot be empty');
+      return;
+    }
+
+    try {
+      new URL(trimmedUrl);
+
+      saveApiBaseUrl(trimmedUrl);
+      setApiSaverSuccess('API URL Saved');
+    } catch (err) {
+      setApiSaverError('Invalid URL. Must include http:// or https://');
+      console.error(err);
+    }
   };
 
   const handleTestSync = async () => {
@@ -145,6 +162,8 @@ function SyncManager() {
               Save
             </button>
           </div>
+          {apiSaverSuccess && <p className="text-xs text-green-600 dark:text-green-400 mt-2">{apiSaverSuccess}</p>}
+          {apiSaverError && <p className="text-sx text-red-600 dark:text-red-400 mt-2">{apiSaverError}</p>}
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">The root URL for the T8D Sync Server.</p>
         </div>
       </section>
