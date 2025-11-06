@@ -163,7 +163,7 @@ function SyncManager() {
             </button>
           </div>
           {apiSaverSuccess && <p className="text-xs text-green-600 dark:text-green-400 mt-2">{apiSaverSuccess}</p>}
-          {apiSaverError && <p className="text-sx text-red-600 dark:text-red-400 mt-2">{apiSaverError}</p>}
+          {apiSaverError && <p className="text-xs text-red-600 dark:text-red-400 mt-2">{apiSaverError}</p>}
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">The root URL for the T8D Sync Server.</p>
         </div>
       </section>
