@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-import { Cog6ToothIcon, EllipsisVerticalIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+  CloudArrowUpIcon,
+  Cog6ToothIcon,
+  EllipsisVerticalIcon,
+  PlusIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import logo from '@src/assets/t8d512.jpg';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 
 import NewListModal from './NewListModal';
 
-type View = 'todolist' | 'settings';
+type View = 'todolist' | 'settings' | 'sync';
 
 interface SidebarProps {
   currentView: View;
@@ -308,19 +314,34 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
         </div>
         <div className="flex justify-between items-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <p>T8D v1.0.0</p>
-          <button
-            onClick={() => {
-              onNavigate('settings');
-            }}
-            className={`p-1 rounded-full transition-colors ${
-              currentView === 'settings'
-                ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
-                : 'text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400'
-            }`}
-            aria-label="Open settings"
-          >
-            <Cog6ToothIcon className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                onNavigate('sync');
+              }}
+              className={`p-1 rounded-full transition-colors ${
+                currentView === 'sync'
+                  ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
+                  : 'text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400'
+              }`}
+              aria-label="Open sync manager"
+            >
+              <CloudArrowUpIcon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => {
+                onNavigate('settings');
+              }}
+              className={`p-1 rounded-full transition-colors ${
+                currentView === 'settings'
+                  ? 'bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-sky-100'
+                  : 'text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400'
+              }`}
+              aria-label="Open settings"
+            >
+              <Cog6ToothIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
       <NewListModal isOpen={isAddModalOpen} onClose={handleModalClose} onSave={handleAddNewList} />
