@@ -7,6 +7,7 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register } = useAuth();
@@ -16,9 +17,14 @@ function RegisterForm() {
     if (isSubmitting) return;
 
     setError(null);
+    setSuccess(null);
     setIsSubmitting(true);
     try {
       await register(email, password, name || undefined);
+      setSuccess('Account created! Please switch to the Login tab.');
+      setName('');
+      setEmail('');
+      setPassword('');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -87,7 +93,7 @@ function RegisterForm() {
           />
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Must be at least 12 characters long.</p>
         </div>
-
+        {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
         {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
         <button

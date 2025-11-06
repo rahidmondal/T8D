@@ -49,17 +49,13 @@ function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(
-    async (email: string, password: string, name?: string) => {
-      await apiClient<UserResponse>('/api/v1/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name }),
-        isPublic: true,
-      });
-      await login(email, password);
-    },
-    [login],
-  );
+  const register = useCallback(async (email: string, password: string, name?: string) => {
+    await apiClient<UserResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+      isPublic: true,
+    });
+  }, []);
 
   const logout = useCallback(() => {
     removeToken();
