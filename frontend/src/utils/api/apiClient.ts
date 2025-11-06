@@ -19,10 +19,10 @@ export const apiClient = async <T>(endpoint: string, options: ApiClientOptions =
 
   const token = getToken();
   const headers = new Headers(options.headers || {});
-  headers.append('Content-Type', 'application/json');
+  headers.set('Content-Type', 'application/json');
 
   if (!options.isPublic && token) {
-    headers.append('Authorization', token);
+    headers.append('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
