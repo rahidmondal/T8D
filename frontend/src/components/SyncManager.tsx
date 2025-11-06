@@ -4,6 +4,7 @@ import { useAuth } from '@src/hooks/useAuth';
 import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
 
+import EditUserForm from './EditUserForm';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 
@@ -19,6 +20,7 @@ function SyncManager() {
   const [view, setView] = useState<AuthView>('login');
   const [apiBaseUrl, setApiBaseUrl] = useState(() => getApiBaseUrl() ?? '');
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { user, logout, isLoading } = useAuth();
 
@@ -55,13 +57,41 @@ function SyncManager() {
   }
 
   if (user) {
+    if (isEditing) {
+      return (
+        <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">
+          <h2 className="text-2xl font-semibold mb-6">Sync Manager</h2>
+          <section className="bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+            <EditUserForm
+              onDone={() => {
+                setIsEditing(false);
+              }}
+            />
+          </section>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">
         <h2 className="text-2xl font-semibold mb-6">Sync Manager</h2>
         <section className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm space-y-4">
-          <h3 className="text-lg font-medium">Account</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Account</h3>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(true);
+              }}
+              className="px-3 py-1 text-sm bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded transition-colors"
+            >
+              Edit Profile
+            </button>
+          </div>
           <p>
             Logged in as: <strong className="text-sky-600 dark:text-sky-400">{user.email}</strong>
+            <br />
+            Name: <strong className="text-sky-600 dark:text-sky-400">{user.name || 'Not set'}</strong>
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">Data synchronization is not yet implemented.</p>
 

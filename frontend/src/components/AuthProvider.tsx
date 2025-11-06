@@ -17,7 +17,7 @@ interface LoginResponse {
   user: AuthUser;
 }
 
-type RegisterResponse = AuthUser;
+type UserResponse = AuthUser;
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -51,12 +51,11 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (email: string, password: string, name?: string) => {
-      await apiClient<RegisterResponse>('/api/v1/auth/register', {
+      await apiClient<UserResponse>('/api/v1/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, name }),
         isPublic: true,
       });
-
       await login(email, password);
     },
     [login],
@@ -69,6 +68,18 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const editUser = useCallback(async (updates: { name?: string; password?: string }) => {
+    const updatedUser = await apiClient<UserResponse>('/api/v1/user/edit', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+
+    if (updatedUser) {
+      saveUser(updatedUser);
+      setUser(updatedUser);
+    }
+  }, []);
+
   const value = {
     user,
     token,
@@ -76,6 +87,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
+    editUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
