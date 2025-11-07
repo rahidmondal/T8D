@@ -22,7 +22,7 @@ function EditUserForm({ onDone }: EditUserFormProps) {
     const newPassword = password;
 
     if (!newName && !newPassword) {
-      setError(`You must provide a name or a new password`);
+      setError('You must provide a name or a new password');
       return;
     }
     if (newPassword && newPassword.length < 12) {
@@ -36,11 +36,11 @@ function EditUserForm({ onDone }: EditUserFormProps) {
 
     const updates: { name?: string; password?: string } = {};
     if (newName && newName !== (user?.name ?? '')) {
-      updates.name = name.trim();
+      updates.name = newName;
     }
 
     if (newPassword) {
-      updates.password = password;
+      updates.password = newPassword;
     }
 
     if (Object.keys(updates).length === 0) {
