@@ -6,11 +6,12 @@ import { Bars3Icon } from '@heroicons/react/24/outline';
 import Settings from '@src/components/Settings';
 import ShortcutMenu from '@src/components/ShortcutMenu';
 import Sidebar from '@src/components/Sidebar';
+import SyncManager from '@src/components/SyncManager';
 import TaskListProvider from '@src/components/TaskListProvider';
 import TodoList from '@src/components/TodoList';
 import { useTheme } from '@src/hooks/useTheme';
 
-type View = 'todolist' | 'settings';
+type View = 'todolist' | 'settings' | 'sync';
 
 function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -26,7 +27,7 @@ function App() {
       const oldView = currentView;
       setCurrentView(view);
       setSidebarOpen(false);
-      if (oldView === 'settings' && view === 'todolist') {
+      if (oldView !== 'todolist' && view === 'todolist') {
         setTimeout(() => todoListRef.current?.focus(), 0);
       }
     },
@@ -42,6 +43,9 @@ function App() {
         e.preventDefault();
         setSidebarOpen(false);
         setShortcutMenuOpen(false);
+        if (currentView !== 'todolist') {
+          handleNavigate('todolist');
+        }
         return;
       }
       if (e.altKey && e.key.toLowerCase() === 's') {
@@ -58,7 +62,7 @@ function App() {
         e.preventDefault();
         setShortcutMenuOpen(true);
       }
-      if (e.key.toLowerCase() === 'n') {
+      if (e.key.toLowerCase() === 'n' && currentView === 'todolist') {
         e.preventDefault();
         mainFormRef.current?.focus();
       }
@@ -76,6 +80,30 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [currentView, toggleTheme, handleNavigate]);
+
+  const renderMainView = () => {
+    switch (currentView) {
+      case 'settings':
+        return (
+          <div className="w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
+            <div className="pl-12 lg:pl-6">
+              <Settings />
+            </div>
+          </div>
+        );
+      case 'sync':
+        return (
+          <div className="w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
+            <div className="pl-12 lg:pl-6">
+              <SyncManager />
+            </div>
+          </div>
+        );
+      case 'todolist':
+      default:
+        return <TodoList formRef={mainFormRef} listRef={todoListRef} />;
+    }
+  };
 
   return (
     <TaskListProvider>
@@ -113,17 +141,7 @@ function App() {
           ></div>
         ) : null}
 
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {currentView === 'todolist' ? (
-            <TodoList formRef={mainFormRef} listRef={todoListRef} />
-          ) : (
-            <div className="w-full p-4 sm:p-6 md:p-8 overflow-y-auto">
-              <div className="pl-12 lg:pl-6">
-                <Settings />
-              </div>
-            </div>
-          )}
-        </main>
+        <main className="flex-1 flex flex-col overflow-hidden">{renderMainView()}</main>
       </div>
 
       <ShortcutMenu

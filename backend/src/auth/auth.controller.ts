@@ -122,7 +122,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
   res.status(200).json({
     message: 'Login Successful',
-    token: `Bearer ${token}`,
+    token: token,
     user: safeUser,
   });
 };
