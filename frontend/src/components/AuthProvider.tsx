@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AuthContext } from '@src/context/AuthContext';
 import { apiClient } from '@src/utils/api/apiClient';
@@ -16,8 +16,6 @@ interface LoginResponse {
   token: string;
   user: AuthUser;
 }
-
-type UserResponse = AuthUser;
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -50,7 +48,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string, name?: string) => {
-    await apiClient<UserResponse>('/api/v1/auth/register', {
+    await apiClient<AuthUser>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
       isPublic: true,
@@ -65,7 +63,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const editUser = useCallback(async (updates: { name?: string; password?: string }) => {
-    const updatedUser = await apiClient<UserResponse>('/api/v1/user/edit', {
+    const updatedUser = await apiClient<AuthUser>('/api/v1/user/edit', {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
@@ -76,15 +74,18 @@ function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = {
-    user,
-    token,
-    isLoading,
-    login,
-    register,
-    logout,
-    editUser,
-  };
+  const value = useMemo<React.ContextType<typeof AuthContext>>(
+    () => ({
+      user,
+      token,
+      isLoading,
+      login,
+      register,
+      logout,
+      editUser,
+    }),
+    [user, token, isLoading, login, register, logout, editUser],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
