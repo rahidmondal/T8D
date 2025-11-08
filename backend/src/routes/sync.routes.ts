@@ -1,15 +1,14 @@
-import { type User } from '@prisma/client'; // Import User type
+import { type User } from '@prisma/client';
 import { Router, type Request, type Response } from 'express';
 
 import { authenticateJwt } from '../auth/passport.js';
-import { bootstrap, pullChanges, pushChanges } from '../sync/sync.controller.js';
+import { bootstrap, syncMain } from '../sync/sync.controller.js';
 
 const syncRouter = Router();
 
 syncRouter.use(authenticateJwt);
 
-syncRouter.post('/push', pushChanges);
-syncRouter.get('/pull', pullChanges);
+syncRouter.post('/', syncMain);
 syncRouter.get('/bootstrap', bootstrap);
 
 syncRouter.get('/', (req: Request, res: Response) => {

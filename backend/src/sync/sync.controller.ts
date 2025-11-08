@@ -1,10 +1,8 @@
-import { type User } from '@prisma/client';
+import { type Task, type TaskList, type User } from '@prisma/client';
 import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { prisma } from '../db/client.js';
-
-// --- Zod Validation Schemas ---
 
 const TaskStatusSchema = z.enum(['not_completed', 'completed']);
 
@@ -34,101 +32,157 @@ const TaskSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional().nullable(),
 });
 
-const PushBatchSchema = z.object({
-  taskLists: z.array(TaskListSchema).optional().default([]),
-  tasks: z.array(TaskSchema).optional().default([]),
+const SyncRequestSchema = z.object({
+  changes: z.object({
+    taskLists: z.array(TaskListSchema).optional().default([]),
+    tasks: z.array(TaskSchema).optional().default([]),
+  }),
+  lastSync: z.string().optional(),
 });
 
-// --- Controller Functions ---
-
-export const pushChanges = async (req: Request, res: Response) => {
+export const syncMain = async (req: Request, res: Response) => {
   try {
     const user = req.user as User;
 
-    const validation = PushBatchSchema.safeParse(req.body);
+    const validation = SyncRequestSchema.safeParse(req.body);
     if (!validation.success) {
-      res.status(400).json({
-        message: 'Invalid sync data format',
-        errors: validation.error.issues,
-      });
+      res.status(400).json({ message: 'Invalid sync data', errors: validation.error.issues });
       return;
     }
 
-    const { taskLists, tasks } = validation.data;
-    console.info(`[Sync] Push from ${user.email}: ${String(taskLists.length)} lists, ${String(tasks.length)} tasks`);
+    const { changes, lastSync } = validation.data;
+    const lastSyncDate = lastSync ? new Date(lastSync) : new Date(0);
 
-    await prisma.$transaction(async tx => {
-      // --- Upsert Lists ---
-      for (const list of taskLists) {
-        await tx.taskList.upsert({
-          where: { id: list.id },
-          create: {
-            id: list.id,
-            name: list.name,
-            description: list.description,
-            lastModified: new Date(list.lastModified),
-            is_deleted: list.is_deleted,
-            order: list.order,
+    const now = new Date();
+
+    console.info(
+      `[Sync] Request from ${user.email}. Pushing ${String(changes.tasks.length)} tasks. Pulling since ${lastSyncDate.toISOString()}`,
+    );
+
+    const result = await prisma.$transaction(async tx => {
+      let pushedListsCount = 0;
+      if (changes.taskLists.length > 0) {
+        const existingLists = await tx.taskList.findMany({
+          where: {
+            id: { in: changes.taskLists.map(l => l.id) },
             userId: user.id,
-            hash: list.hash,
-          },
-          update: {
-            name: list.name,
-            description: list.description,
-            lastModified: new Date(list.lastModified),
-            is_deleted: list.is_deleted,
-            order: list.order,
-            hash: list.hash,
           },
         });
+        const existingListMap = new Map<string, TaskList>(existingLists.map(l => [l.id, l]));
+
+        for (const list of changes.taskLists) {
+          const existing = existingListMap.get(list.id);
+
+          if (!existing || list.lastModified > existing.lastModified.getTime()) {
+            await tx.taskList.upsert({
+              where: { id: list.id },
+              create: {
+                id: list.id,
+                userId: user.id,
+                name: list.name,
+                description: list.description,
+                lastModified: new Date(list.lastModified),
+                is_deleted: list.is_deleted,
+                order: list.order,
+                hash: list.hash,
+              },
+              update: {
+                name: list.name,
+                description: list.description,
+                lastModified: new Date(list.lastModified),
+                is_deleted: list.is_deleted,
+                order: list.order,
+                hash: list.hash,
+              },
+            });
+            pushedListsCount++;
+          }
+        }
       }
 
-      // --- Upsert Tasks ---
-      for (const task of tasks) {
-        await tx.task.upsert({
-          where: { id: task.id },
-          create: {
-            id: task.id,
-            name: task.name,
-            description: task.description,
-            status: task.status === 'completed' ? 'completed' : 'not_completed',
-            createdAt: new Date(task.createdAt),
-            lastModified: new Date(task.lastModified),
-            dueDate: task.dueDate ? new Date(task.dueDate) : null,
-            listId: task.listId,
-            parentId: task.parentId,
-            order: task.order,
-            is_deleted: task.is_deleted,
-            hash: task.hash,
-            metadata: task.metadata ?? undefined,
-          },
-          update: {
-            name: task.name,
-            description: task.description,
-            status: task.status === 'completed' ? 'completed' : 'not_completed',
-            lastModified: new Date(task.lastModified),
-            dueDate: task.dueDate ? new Date(task.dueDate) : null,
-            listId: task.listId,
-            parentId: task.parentId,
-            order: task.order,
-            is_deleted: task.is_deleted,
-            hash: task.hash,
-            metadata: task.metadata ?? undefined,
+      let pushedTasksCount = 0;
+      if (changes.tasks.length > 0) {
+        const existingTasks = await tx.task.findMany({
+          where: {
+            id: { in: changes.tasks.map(t => t.id) },
+            list: { userId: user.id },
           },
         });
+        const existingTaskMap = new Map<string, Task>(existingTasks.map(t => [t.id, t]));
+
+        for (const task of changes.tasks) {
+          const existing = existingTaskMap.get(task.id);
+
+          if (!existing || task.lastModified > existing.lastModified.getTime()) {
+            await tx.task.upsert({
+              where: { id: task.id },
+              create: {
+                id: task.id,
+                listId: task.listId,
+                name: task.name,
+                description: task.description,
+                status: task.status === 'completed' ? 'completed' : 'not_completed',
+                createdAt: new Date(task.createdAt),
+                lastModified: new Date(task.lastModified),
+                dueDate: task.dueDate ? new Date(task.dueDate) : null,
+                parentId: task.parentId,
+                order: task.order,
+                is_deleted: task.is_deleted,
+                hash: task.hash,
+                metadata: task.metadata ?? undefined,
+              },
+              update: {
+                name: task.name,
+                description: task.description,
+                status: task.status === 'completed' ? 'completed' : 'not_completed',
+                lastModified: new Date(task.lastModified),
+                dueDate: task.dueDate ? new Date(task.dueDate) : null,
+                listId: task.listId,
+                parentId: task.parentId,
+                order: task.order,
+                is_deleted: task.is_deleted,
+                hash: task.hash,
+                metadata: task.metadata ?? undefined,
+              },
+            });
+            pushedTasksCount++;
+          }
+        }
       }
+
+      const [pulledLists, pulledTasks] = await Promise.all([
+        tx.taskList.findMany({
+          where: {
+            userId: user.id,
+            lastModified: { gt: lastSyncDate },
+          },
+        }),
+        tx.task.findMany({
+          where: {
+            list: { userId: user.id },
+            lastModified: { gt: lastSyncDate },
+          },
+        }),
+      ]);
+
+      return {
+        pushed: { lists: pushedListsCount, tasks: pushedTasksCount },
+        pulled: { taskLists: pulledLists, tasks: pulledTasks },
+      };
     });
 
-    res.status(200).json({ message: 'Push successful' });
+    console.info(
+      `[Sync] Success for ${user.email}. Pushed: ${String(result.pushed.tasks)} tasks. Pulled: ${String(result.pulled.tasks.length)} tasks.`,
+    );
+
+    res.status(200).json({
+      timestamp: now.toISOString(),
+      changes: result.pulled,
+    });
   } catch (error) {
-    console.error('[Sync] Push failed:', error);
+    console.error('[Sync] Error:', error);
     res.status(500).json({ message: 'Internal server error during sync' });
   }
-};
-
-export const pullChanges = async (_req: Request, res: Response) => {
-  await Promise.resolve();
-  res.status(501).json({ message: 'Pull not implemented yet' });
 };
 
 export const bootstrap = async (req: Request, res: Response) => {
