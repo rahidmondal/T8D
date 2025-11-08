@@ -1,32 +1,83 @@
 import { Task } from '@src/models/Task';
 import { TaskList } from '@src/models/TaskList';
 
+import { addToOutbox } from '../database/database';
+
 import { getSyncEnabled } from './syncSettings';
 
-export const pushTaskChange = async (task: Task): Promise<void> => {
-  if (!getSyncEnabled()) return;
+const safelyExecute = async (operationName: string, operation: () => Promise<void>) => {
+  if (!getSyncEnabled()) {
+    return;
+  }
 
-  await Promise.resolve();
-  console.info('SyncManager: Task change detected (Sync Enabled)', task.id);
+  try {
+    await operation();
+  } catch (error) {
+    console.error(`SyncManager Error [${operationName}]:`, error);
+  }
+};
+
+// --- Push Operations (Sending changes to outbox) ---
+
+export const pushTaskChange = async (task: Task): Promise<void> => {
+  await safelyExecute('pushTaskChange', async () => {
+    // We use 'UPDATE' as a generic "UPSERT" operation because we are sending the full object.
+    // The backend will handle creating it if it doesn't exist.
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'TASK',
+      operation: 'UPDATE',
+      targetId: task.id,
+      payload: task,
+    });
+    console.info('[SyncManager] Queued task change:', task.id);
+  });
 };
 
 export const pushTaskDelete = async (taskId: string): Promise<void> => {
-  if (!getSyncEnabled()) return;
-
-  await Promise.resolve();
-  console.info('SyncManager: Task deletion detected (Sync Enabled)', taskId);
+  await safelyExecute('pushTaskDelete', async () => {
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'TASK',
+      operation: 'DELETE',
+      targetId: taskId,
+      payload: null,
+    });
+    console.info('[SyncManager] Queued task deletion:', taskId);
+  });
 };
 
 export const pushListChange = async (list: TaskList): Promise<void> => {
-  if (!getSyncEnabled()) return;
-
-  await Promise.resolve();
-  console.info('SyncManager: List change detected (Sync Enabled)', list.id);
+  await safelyExecute('pushListChange', async () => {
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'LIST',
+      operation: 'UPDATE',
+      targetId: list.id,
+      payload: list,
+    });
+    console.info('[SyncManager] Queued list change:', list.id);
+  });
 };
 
 export const pushListDelete = async (listId: string): Promise<void> => {
-  if (!getSyncEnabled()) return;
+  await safelyExecute('pushListDelete', async () => {
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'LIST',
+      operation: 'DELETE',
+      targetId: listId,
+      payload: null,
+    });
+    console.info('[SyncManager] Queued list deletion:', listId);
+  });
+};
 
-  await Promise.resolve();
-  console.info('SyncManager: List deletion detected (Sync Enabled)', listId);
+// --- Pull Operations ---
+
+export const pullChanges = async (): Promise<void> => {
+  await safelyExecute('pullChanges', async () => {
+    console.info('[SyncManager] Pull requested (Not yet implemented)');
+    await Promise.resolve();
+  });
 };
