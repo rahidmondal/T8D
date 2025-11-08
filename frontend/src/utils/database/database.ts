@@ -179,6 +179,22 @@ export async function deleteAllTaskListsFromDb(): Promise<void> {
 
 // ---  Sync Outbox Operations ---
 
+export async function getAllOutboxEntries(): Promise<OutboxEntry[]> {
+  const db = await getDB();
+  return db.getAll('sync-outbox');
+}
+
+export async function clearOutbox(untilId?: number): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('sync-outbox', 'readwrite');
+  if (untilId !== undefined) {
+    await tx.store.delete(IDBKeyRange.upperBound(untilId));
+  } else {
+    await tx.store.clear();
+  }
+  await tx.done;
+}
+
 export async function addToOutbox(entry: Omit<OutboxEntry, 'id'>): Promise<number> {
   const db = await getDB();
   return db.add('sync-outbox', entry);
@@ -203,4 +219,27 @@ export async function removeOutboxEntry(id: number): Promise<void> {
 export async function getOutboxCount(): Promise<number> {
   const db = await getDB();
   return db.count('sync-outbox');
+}
+
+export async function applyServerChanges(changes: { taskLists: TaskList[]; tasks: Task[] }): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['task-lists', 'tasks'], 'readwrite');
+
+  for (const list of changes.taskLists) {
+    if (list.is_deleted) {
+      await tx.objectStore('task-lists').delete(list.id);
+    } else {
+      await tx.objectStore('task-lists').put(list);
+    }
+  }
+
+  for (const task of changes.tasks) {
+    if (task.is_deleted) {
+      await tx.objectStore('tasks').delete(task.id);
+    } else {
+      await tx.objectStore('tasks').put(task);
+    }
+  }
+
+  await tx.done;
 }
