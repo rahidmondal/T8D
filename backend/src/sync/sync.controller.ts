@@ -57,7 +57,7 @@ export const syncMain = async (req: Request, res: Response) => {
     const now = new Date();
 
     console.info(
-      `[Sync] Request from ${user.email}. Pushing ${String(changes.tasks.length)} tasks. Pulling since ${lastSyncDate.toISOString()}`,
+      `[Sync] Request from ${user.id}. Pushing ${String(changes.tasks.length)} tasks. Pulling since ${lastSyncDate.toISOString()}`,
     );
 
     const result = await prisma.$transaction(async tx => {
@@ -173,7 +173,7 @@ export const syncMain = async (req: Request, res: Response) => {
     });
 
     console.info(
-      `[Sync] Success for ${user.email}. Pushed: ${String(result.pushed.tasks)} tasks. Pulled: ${String(result.pulled.tasks.length)} tasks.`,
+      `[Sync] Success for ${user.id}. Pushed: ${String(result.pushed.tasks)} tasks. Pulled: ${String(result.pulled.tasks.length)} tasks.`,
     );
 
     res.status(200).json({
@@ -197,7 +197,7 @@ export const bootstrap = async (req: Request, res: Response) => {
     ]);
 
     console.info(
-      `[Sync] Bootstrap for ${user.email}: sending ${String(lists.length)} lists, ${String(tasks.length)} tasks`,
+      `[Sync] Bootstrap for ${user.id}: sending ${String(lists.length)} lists, ${String(tasks.length)} tasks`,
     );
 
     res.status(200).json({
