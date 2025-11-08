@@ -22,7 +22,9 @@ const safelyExecute = async (operationName: string, operation: () => Promise<voi
 export const pushTaskChange = async (task: Task): Promise<void> => {
   await safelyExecute('pushTaskChange', async () => {
     // We use 'UPDATE' as a generic "UPSERT" operation because we are sending the full object.
-    // The backend will handle creating it if it doesn't exist.
+    // Note: Although the SyncOperation type includes a separate 'CREATE' operation,
+    // this implementation uses 'UPDATE' for both creation and update (upsert).
+    // The backend is expected to create the entity if it does not exist, and update it otherwise.
     await addToOutbox({
       timestamp: Date.now(),
       entity: 'TASK',
