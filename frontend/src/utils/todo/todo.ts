@@ -18,6 +18,7 @@ import {
   updateTaskInDb,
   updateTaskListInDb,
 } from '../database/database';
+import * as SyncManager from '../sync/syncManager';
 
 const generateHash = async (dataArray: (string | number | null | undefined)[]): Promise<string> => {
   const content = dataArray.map(item => item?.toString() ?? '').join('|');
@@ -78,6 +79,7 @@ export const createTask = async (
   };
 
   await addTaskToDb(task);
+  void SyncManager.pushTaskChange(task);
   return task;
 };
 
@@ -99,6 +101,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
   const updatedTask: Task = { ...updatedTaskData, hash };
 
   await updateTaskInDb(updatedTask);
+  void SyncManager.pushTaskChange(updatedTask);
 
   if (updates.status === TaskStatus.COMPLETED) {
     const childTasks = await getTasksByParentFromDb(taskId);
@@ -127,6 +130,7 @@ export const deleteTask = async (taskId: string): Promise<void> => {
     });
     await Promise.all(childPromise);
     await deleteTaskFromDb(currentTaskId);
+    void SyncManager.pushTaskDelete(currentTaskId);
   };
 
   await performDelete(taskId);
@@ -178,6 +182,7 @@ export const createTaskList = async (name: string, description?: string): Promis
   };
 
   await addTaskListToDb(list);
+  void SyncManager.pushListChange(list);
   return list;
 };
 
@@ -186,6 +191,7 @@ export const deleteTaskList = async (listId: string): Promise<void> => {
   const deletePromises = tasks.map(task => deleteTaskFromDb(task.id));
   await Promise.all(deletePromises);
   await deleteTaskListFromDb(listId);
+  void SyncManager.pushListDelete(listId);
 };
 
 export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskList, 'id'>>): Promise<TaskList> => {
@@ -201,6 +207,7 @@ export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskL
   };
 
   await updateTaskListInDb(updatedList);
+  void SyncManager.pushListChange(updatedList);
   return updatedList;
 };
 

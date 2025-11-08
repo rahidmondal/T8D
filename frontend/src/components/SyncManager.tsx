@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@src/hooks/useAuth';
 import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
+import { getSyncEnabled, setSyncEnabled } from '@src/utils/sync/syncSettings';
 
 import EditUserForm from './EditUserForm';
 import LoginForm from './LoginForm';
@@ -23,7 +24,7 @@ function SyncManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [apiSaverError, setApiSaverError] = useState<string | null>(null);
   const [apiSaverSuccess, setApiSaverSuccess] = useState<string | null>(null);
-
+  const [isSyncEnabled, setIsSyncEnabled] = useState<boolean>(getSyncEnabled());
   const { user, logout, isLoading } = useAuth();
 
   const handleBaseUrlSave = () => {
@@ -60,6 +61,11 @@ function SyncManager() {
         setTestResult('An unknown error occurred.');
       }
     }
+  };
+  const handleSyncToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    setIsSyncEnabled(newValue);
+    setSyncEnabled(newValue);
   };
 
   if (isLoading) {
@@ -105,6 +111,31 @@ function SyncManager() {
               Edit Profile
             </button>
           </div>
+          <hr className="border-slate-200 dark:border-slate-700" />
+          <div>
+            <h3 className="text-lg font-medium mb-3">Sync Settings</h3>
+            <div className="flex items-center justify-between">
+              <label htmlFor="sync-toggle" className="text-slate-700 dark:text-slate-300 font-medium">
+                Enable Synchronization
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  id="sync-toggle"
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isSyncEnabled}
+                  onChange={handleSyncToggle}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 dark:peer-focus:ring-sky-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-sky-600"></div>
+              </label>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              {isSyncEnabled
+                ? 'Your tasks will be synced with the server (Functionality coming soon).'
+                : 'Sync is disabled. Your tasks are only stored on this device.'}
+            </p>
+          </div>
+          <hr className="border-slate-200 dark:border-slate-700" />
           <p>
             Logged in as: <strong className="text-sky-600 dark:text-sky-400">{user.email}</strong>
             <br />
