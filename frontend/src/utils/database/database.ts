@@ -2,6 +2,18 @@ import { Task, TaskStatus } from '@src/models/Task';
 import { TaskList } from '@src/models/TaskList';
 import { DBSchema, openDB } from 'idb';
 
+export type SyncOperation = 'CREATE' | 'UPDATE' | 'DELETE';
+export type SyncEntity = 'TASK' | 'LIST';
+
+export interface OutboxEntry {
+  id?: number;
+  timestamp: number;
+  entity: SyncEntity;
+  operation: SyncOperation;
+  targetId: string;
+  payload: Task | TaskList | null;
+}
+
 interface T8DDatabase extends DBSchema {
   tasks: {
     key: string;
@@ -20,10 +32,15 @@ interface T8DDatabase extends DBSchema {
       'by-order': number;
     };
   };
+
+  'sync-outbox': {
+    key: number;
+    value: OutboxEntry;
+  };
 }
 
 const DB_NAME = 't8d-db1';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export async function getDB() {
   const dbPromise = await openDB<T8DDatabase>(DB_NAME, DB_VERSION, {
@@ -50,6 +67,9 @@ export async function getDB() {
 
         const listStore = tx.objectStore('task-lists');
         listStore.createIndex('by-order', 'order');
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('sync-outbox', { keyPath: 'id', autoIncrement: true });
       }
     },
   });
@@ -155,4 +175,32 @@ export async function deleteAllTaskListsFromDb(): Promise<void> {
   const tx = db.transaction('task-lists', 'readwrite');
   await tx.objectStore('task-lists').clear();
   await tx.done;
+}
+
+// ---  Sync Outbox Operations ---
+
+export async function addToOutbox(entry: Omit<OutboxEntry, 'id'>): Promise<number> {
+  const db = await getDB();
+  return db.add('sync-outbox', entry);
+}
+
+// Get the *next* item to sync (FIFO).
+// We use a cursor to just get the first one efficiently.
+export async function getNextOutboxEntry(): Promise<OutboxEntry | undefined> {
+  const db = await getDB();
+  const tx = db.transaction('sync-outbox', 'readonly');
+  const cursor = await tx.store.openCursor();
+  return cursor?.value;
+}
+
+// Remove an item from the outbox (called after successful sync).
+export async function removeOutboxEntry(id: number): Promise<void> {
+  const db = await getDB();
+  await db.delete('sync-outbox', id);
+}
+
+// Helpful for UI to show "5 items pending sync"
+export async function getOutboxCount(): Promise<number> {
+  const db = await getDB();
+  return db.count('sync-outbox');
 }
