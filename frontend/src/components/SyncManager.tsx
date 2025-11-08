@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@src/hooks/useAuth';
 import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
+import { queueAllLocalData } from '@src/utils/sync/syncManager';
 import { getSyncEnabled, setSyncEnabled } from '@src/utils/sync/syncSettings';
 
 import EditUserForm from './EditUserForm';
@@ -62,12 +63,16 @@ function SyncManager() {
       }
     }
   };
+
   const handleSyncToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setIsSyncEnabled(newValue);
     setSyncEnabled(newValue);
-  };
 
+    if (newValue) {
+      void queueAllLocalData();
+    }
+  };
   if (isLoading) {
     return (
       <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">

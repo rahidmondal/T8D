@@ -3,6 +3,7 @@ import { TaskList } from '@src/models/TaskList';
 import { apiClient } from '@src/utils/api/apiClient';
 
 import { addToOutbox, applyServerChanges, clearOutbox, getAllOutboxEntries, OutboxEntry } from '../database/database';
+import { getAllTaskLists, getAllTasks } from '../todo/todo';
 
 import { getSyncEnabled } from './syncSettings';
 
@@ -134,4 +135,34 @@ export const pushListDelete = (listId: string): void => {
 
 export const pullChanges = (): void => {
   void performSync();
+};
+export const queueAllLocalData = async (): Promise<void> => {
+  await safelyExecute('queueAllLocalData', async () => {
+    console.info('[SyncManager] Queueing ALL local data for initial sync...');
+
+    const [lists, tasks] = await Promise.all([getAllTaskLists(), getAllTasks()]);
+
+    for (const list of lists) {
+      await addToOutbox({
+        timestamp: Date.now(),
+        entity: 'LIST',
+        operation: 'UPDATE',
+        targetId: list.id,
+        payload: list,
+      });
+    }
+
+    for (const task of tasks) {
+      await addToOutbox({
+        timestamp: Date.now(),
+        entity: 'TASK',
+        operation: 'UPDATE',
+        targetId: task.id,
+        payload: task,
+      });
+    }
+
+    console.info(`[SyncManager] Queued ${String(lists.length)} lists and ${String(tasks.length)} tasks.`);
+    void performSync();
+  });
 };
