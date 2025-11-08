@@ -119,7 +119,13 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   }
 
   const finalParentId = existingTask.parentId ?? null;
+
   const performDelete = async (currentTaskId: string): Promise<void> => {
+    // 1. Fetch task to create tombstone
+    const taskToDelete = await getTaskFromDb(currentTaskId);
+    if (!taskToDelete) return;
+
+    // 2. Handle children
     const childTasks = await getTasksByParentFromDb(currentTaskId);
     const childPromise = childTasks.map(childTask => {
       if (childTask.status === TaskStatus.COMPLETED) {
@@ -129,8 +135,19 @@ export const deleteTask = async (taskId: string): Promise<void> => {
       }
     });
     await Promise.all(childPromise);
+
+    // 3. Create Tombstone
+    const tombstone: Task = {
+      ...taskToDelete,
+      is_deleted: true,
+      lastModified: Date.now(),
+    };
+
+    // 4. Delete locally
     await deleteTaskFromDb(currentTaskId);
-    void SyncManager.pushTaskDelete(currentTaskId);
+
+    // 5. Queue tombstone
+    void SyncManager.pushTaskDelete(tombstone);
   };
 
   await performDelete(taskId);
@@ -187,11 +204,24 @@ export const createTaskList = async (name: string, description?: string): Promis
 };
 
 export const deleteTaskList = async (listId: string): Promise<void> => {
+  const existingList = await getTaskListFromDb(listId);
+  if (!existingList) return;
+
+  const tombstone: TaskList = {
+    ...existingList,
+    is_deleted: true,
+    lastModified: Date.now(),
+  };
+
+  // 2. Delete all tasks in the list
   const tasks = await getTasksByList(listId);
-  const deletePromises = tasks.map(task => deleteTaskFromDb(task.id));
-  await Promise.all(deletePromises);
+  await Promise.all(tasks.map(task => deleteTask(task.id)));
+
+  // 3. Delete list locally
   await deleteTaskListFromDb(listId);
-  void SyncManager.pushListDelete(listId);
+
+  // 4. Queue list tombstone
+  void SyncManager.pushListDelete(tombstone);
 };
 
 export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskList, 'id'>>): Promise<TaskList> => {

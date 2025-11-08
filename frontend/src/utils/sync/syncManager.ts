@@ -2,8 +2,15 @@ import { Task } from '@src/models/Task';
 import { TaskList } from '@src/models/TaskList';
 import { apiClient } from '@src/utils/api/apiClient';
 
-import { addToOutbox, applyServerChanges, clearOutbox, getAllOutboxEntries, OutboxEntry } from '../database/database';
-import { getAllTaskLists, getAllTasks } from '../todo/todo';
+import {
+  addToOutbox,
+  applyServerChanges,
+  clearOutbox,
+  getAllOutboxEntries,
+  getAllTaskListsFromDb,
+  getAllTasksFromDb,
+  OutboxEntry,
+} from '../database/database';
 
 import { getSyncEnabled } from './syncSettings';
 
@@ -69,6 +76,12 @@ export const performSync = async (): Promise<void> => {
 
     const lastProcessedId = outboxEntries.length > 0 ? outboxEntries[outboxEntries.length - 1].id : undefined;
 
+    if (payload.changes.taskLists.length === 0 && payload.changes.tasks.length === 0 && !lastSync) {
+      console.info('[SyncManager] Nothing to sync.');
+      isSyncing = false;
+      return;
+    }
+
     const response = await apiClient<SyncResponse>('/api/v1/sync/', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -112,8 +125,17 @@ export const pushTaskChange = async (task: Task): Promise<void> => {
   });
 };
 
-export const pushTaskDelete = (taskId: string): void => {
-  console.warn('[SyncManager] pushTaskDelete not yet fully implemented with Tombstones. Task ID:', taskId);
+export const pushTaskDelete = async (task: Task): Promise<void> => {
+  await safelyExecute('pushTaskDelete', async () => {
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'TASK',
+      operation: 'DELETE',
+      targetId: task.id,
+      payload: task,
+    });
+    void performSync();
+  });
 };
 
 export const pushListChange = async (list: TaskList): Promise<void> => {
@@ -129,18 +151,28 @@ export const pushListChange = async (list: TaskList): Promise<void> => {
   });
 };
 
-export const pushListDelete = (listId: string): void => {
-  console.warn('[SyncManager] pushListDelete not yet implemented with Tombstones. List ID:', listId);
+export const pushListDelete = async (list: TaskList): Promise<void> => {
+  await safelyExecute('pushListDelete', async () => {
+    await addToOutbox({
+      timestamp: Date.now(),
+      entity: 'LIST',
+      operation: 'DELETE',
+      targetId: list.id,
+      payload: list,
+    });
+    void performSync();
+  });
 };
 
 export const pullChanges = (): void => {
   void performSync();
 };
+
 export const queueAllLocalData = async (): Promise<void> => {
   await safelyExecute('queueAllLocalData', async () => {
     console.info('[SyncManager] Queueing ALL local data for initial sync...');
 
-    const [lists, tasks] = await Promise.all([getAllTaskLists(), getAllTasks()]);
+    const [lists, tasks] = await Promise.all([getAllTaskListsFromDb(), getAllTasksFromDb()]);
 
     for (const list of lists) {
       await addToOutbox({
