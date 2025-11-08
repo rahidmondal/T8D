@@ -10,7 +10,7 @@ const TaskListSchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
   description: z.string().optional().nullable(),
-  lastModified: z.number(),
+  lastModified: z.coerce.date(),
   is_deleted: z.boolean().optional().default(false),
   order: z.number().optional().default(0),
   hash: z.string(),
@@ -21,9 +21,9 @@ const TaskSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional().nullable(),
   status: TaskStatusSchema,
-  createdAt: z.number(),
-  lastModified: z.number(),
-  dueDate: z.number().nullable().optional(),
+  createdAt: z.coerce.date(),
+  lastModified: z.coerce.date(),
+  dueDate: z.coerce.date().nullable().optional(),
   listId: z.uuid(),
   parentId: z.uuid().nullable().optional(),
   order: z.number().optional().default(0),
@@ -46,6 +46,7 @@ export const syncMain = async (req: Request, res: Response) => {
 
     const validation = SyncRequestSchema.safeParse(req.body);
     if (!validation.success) {
+      console.error('[Sync] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       res.status(400).json({ message: 'Invalid sync data', errors: validation.error.issues });
       return;
     }
@@ -73,7 +74,7 @@ export const syncMain = async (req: Request, res: Response) => {
         for (const list of changes.taskLists) {
           const existing = existingListMap.get(list.id);
 
-          if (!existing || list.lastModified > existing.lastModified.getTime()) {
+          if (!existing || list.lastModified.getTime() > existing.lastModified.getTime()) {
             await tx.taskList.upsert({
               where: { id: list.id },
               create: {
@@ -81,7 +82,7 @@ export const syncMain = async (req: Request, res: Response) => {
                 userId: user.id,
                 name: list.name,
                 description: list.description,
-                lastModified: new Date(list.lastModified),
+                lastModified: list.lastModified,
                 is_deleted: list.is_deleted,
                 order: list.order,
                 hash: list.hash,
@@ -89,7 +90,7 @@ export const syncMain = async (req: Request, res: Response) => {
               update: {
                 name: list.name,
                 description: list.description,
-                lastModified: new Date(list.lastModified),
+                lastModified: list.lastModified,
                 is_deleted: list.is_deleted,
                 order: list.order,
                 hash: list.hash,
@@ -113,7 +114,7 @@ export const syncMain = async (req: Request, res: Response) => {
         for (const task of changes.tasks) {
           const existing = existingTaskMap.get(task.id);
 
-          if (!existing || task.lastModified > existing.lastModified.getTime()) {
+          if (!existing || task.lastModified.getTime() > existing.lastModified.getTime()) {
             await tx.task.upsert({
               where: { id: task.id },
               create: {
@@ -121,10 +122,10 @@ export const syncMain = async (req: Request, res: Response) => {
                 listId: task.listId,
                 name: task.name,
                 description: task.description,
-                status: task.status === 'completed' ? 'completed' : 'not_completed',
-                createdAt: new Date(task.createdAt),
-                lastModified: new Date(task.lastModified),
-                dueDate: task.dueDate ? new Date(task.dueDate) : null,
+                status: task.status,
+                createdAt: task.createdAt,
+                lastModified: task.lastModified,
+                dueDate: task.dueDate,
                 parentId: task.parentId,
                 order: task.order,
                 is_deleted: task.is_deleted,
@@ -134,9 +135,9 @@ export const syncMain = async (req: Request, res: Response) => {
               update: {
                 name: task.name,
                 description: task.description,
-                status: task.status === 'completed' ? 'completed' : 'not_completed',
-                lastModified: new Date(task.lastModified),
-                dueDate: task.dueDate ? new Date(task.dueDate) : null,
+                status: task.status,
+                lastModified: task.lastModified,
+                dueDate: task.dueDate,
                 listId: task.listId,
                 parentId: task.parentId,
                 order: task.order,
