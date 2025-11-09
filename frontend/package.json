@@ -2,7 +2,7 @@
   "name": "t8d",
   "private": true,
   "homepage": "https://rahidmondal.github.io/T8D/",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "T8D - A Simple Task Manager",
   "scripts": {

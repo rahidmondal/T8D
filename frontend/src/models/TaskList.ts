@@ -5,4 +5,5 @@ export interface TaskList {
   lastModified: number;
   hash: string;
   order: number;
+  is_deleted?: boolean;
 }

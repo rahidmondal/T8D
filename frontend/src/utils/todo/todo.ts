@@ -18,6 +18,7 @@ import {
   updateTaskInDb,
   updateTaskListInDb,
 } from '../database/database';
+import * as SyncManager from '../sync/syncManager';
 
 const generateHash = async (dataArray: (string | number | null | undefined)[]): Promise<string> => {
   const content = dataArray.map(item => item?.toString() ?? '').join('|');
@@ -42,6 +43,7 @@ export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string
     task.dueDate?.toString() ?? '',
     task.parentId ?? '',
     task.listId,
+    task.is_deleted ? 'true' : 'false',
   ];
 
   return generateHash(dataToHash);
@@ -78,6 +80,7 @@ export const createTask = async (
   };
 
   await addTaskToDb(task);
+  void SyncManager.pushTaskChange(task);
   return task;
 };
 
@@ -99,6 +102,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
   const updatedTask: Task = { ...updatedTaskData, hash };
 
   await updateTaskInDb(updatedTask);
+  void SyncManager.pushTaskChange(updatedTask);
 
   if (updates.status === TaskStatus.COMPLETED) {
     const childTasks = await getTasksByParentFromDb(taskId);
@@ -116,7 +120,11 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   }
 
   const finalParentId = existingTask.parentId ?? null;
+
   const performDelete = async (currentTaskId: string): Promise<void> => {
+    const taskToDelete = await getTaskFromDb(currentTaskId);
+    if (!taskToDelete) return;
+
     const childTasks = await getTasksByParentFromDb(currentTaskId);
     const childPromise = childTasks.map(childTask => {
       if (childTask.status === TaskStatus.COMPLETED) {
@@ -126,7 +134,19 @@ export const deleteTask = async (taskId: string): Promise<void> => {
       }
     });
     await Promise.all(childPromise);
+
+    const now = Date.now();
+    const tombstoneData = {
+      ...taskToDelete,
+      is_deleted: true,
+      lastModified: now,
+    };
+    const hash = await generateTaskHash(tombstoneData);
+    const tombstone: Task = { ...tombstoneData, hash };
+
     await deleteTaskFromDb(currentTaskId);
+
+    void SyncManager.pushTaskDelete(tombstone);
   };
 
   await performDelete(taskId);
@@ -153,7 +173,14 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 // --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
-  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString(), list.order.toString()];
+  const dataToHash = [
+    list.id,
+    list.name,
+    list.description ?? '',
+    list.lastModified.toString(),
+    list.order.toString(),
+    list.is_deleted ? 'true' : 'false',
+  ];
 
   return generateHash(dataToHash);
 };
@@ -178,14 +205,28 @@ export const createTaskList = async (name: string, description?: string): Promis
   };
 
   await addTaskListToDb(list);
+  void SyncManager.pushListChange(list);
   return list;
 };
 
 export const deleteTaskList = async (listId: string): Promise<void> => {
+  const existingList = await getTaskListFromDb(listId);
+  if (!existingList) return;
+
   const tasks = await getTasksByList(listId);
-  const deletePromises = tasks.map(task => deleteTaskFromDb(task.id));
-  await Promise.all(deletePromises);
+  await Promise.all(tasks.map(task => deleteTask(task.id)));
+  const now = Date.now();
+  const tombstoneData = {
+    ...existingList,
+    is_deleted: true,
+    lastModified: now,
+  };
+  const hash = await generateTaskListHash(tombstoneData);
+  const tombstone: TaskList = { ...tombstoneData, hash };
+
   await deleteTaskListFromDb(listId);
+
+  void SyncManager.pushListDelete(tombstone);
 };
 
 export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskList, 'id'>>): Promise<TaskList> => {
@@ -194,13 +235,16 @@ export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskL
     throw new Error(`Task list with id ${listId} not found`);
   }
 
-  const updatedList: TaskList = {
+  const updatedListData: Omit<TaskList, 'hash'> = {
     ...existingList,
     ...updates,
     lastModified: Date.now(),
   };
+  const hash = await generateTaskListHash(updatedListData);
+  const updatedList: TaskList = { ...updatedListData, hash };
 
   await updateTaskListInDb(updatedList);
+  void SyncManager.pushListChange(updatedList);
   return updatedList;
 };
 

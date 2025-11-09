@@ -2,6 +2,18 @@ import { Task, TaskStatus } from '@src/models/Task';
 import { TaskList } from '@src/models/TaskList';
 import { DBSchema, openDB } from 'idb';
 
+export type SyncOperation = 'CREATE' | 'UPDATE' | 'DELETE';
+export type SyncEntity = 'TASK' | 'LIST';
+
+export interface OutboxEntry {
+  id?: number;
+  timestamp: number;
+  entity: SyncEntity;
+  operation: SyncOperation;
+  targetId: string;
+  payload: Task | TaskList | null;
+}
+
 interface T8DDatabase extends DBSchema {
   tasks: {
     key: string;
@@ -20,16 +32,20 @@ interface T8DDatabase extends DBSchema {
       'by-order': number;
     };
   };
+
+  'sync-outbox': {
+    key: number;
+    value: OutboxEntry;
+  };
 }
 
 const DB_NAME = 't8d-db1';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export async function getDB() {
   const dbPromise = await openDB<T8DDatabase>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
-        // Create Object Store for tasks
         const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
         taskStore.createIndex('by-status', 'status');
         taskStore.createIndex('by-parent', 'parentId');
@@ -50,6 +66,9 @@ export async function getDB() {
 
         const listStore = tx.objectStore('task-lists');
         listStore.createIndex('by-order', 'order');
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('sync-outbox', { keyPath: 'id', autoIncrement: true });
       }
     },
   });
@@ -154,5 +173,88 @@ export async function deleteAllTaskListsFromDb(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction('task-lists', 'readwrite');
   await tx.objectStore('task-lists').clear();
+  await tx.done;
+}
+
+// ---  Sync Outbox Operations ---
+
+export async function getAllOutboxEntries(): Promise<OutboxEntry[]> {
+  const db = await getDB();
+  return db.getAll('sync-outbox');
+}
+
+export async function clearOutbox(untilId?: number): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('sync-outbox', 'readwrite');
+  if (untilId !== undefined) {
+    await tx.store.delete(IDBKeyRange.upperBound(untilId));
+  } else {
+    await tx.store.clear();
+  }
+  await tx.done;
+}
+
+export async function addToOutbox(entry: Omit<OutboxEntry, 'id'>): Promise<number> {
+  const db = await getDB();
+  return db.add('sync-outbox', entry);
+}
+
+export async function getNextOutboxEntry(): Promise<OutboxEntry | undefined> {
+  const db = await getDB();
+  const tx = db.transaction('sync-outbox', 'readonly');
+  const cursor = await tx.store.openCursor();
+  return cursor?.value;
+}
+
+export async function removeOutboxEntry(id: number): Promise<void> {
+  const db = await getDB();
+  await db.delete('sync-outbox', id);
+}
+
+export async function getOutboxCount(): Promise<number> {
+  const db = await getDB();
+  return db.count('sync-outbox');
+}
+
+export async function applyServerChanges(changes: { taskLists: TaskList[]; tasks: Task[] }): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['task-lists', 'tasks'], 'readwrite');
+
+  for (const remoteList of changes.taskLists) {
+    const localList = await tx.objectStore('task-lists').get(remoteList.id);
+
+    if (
+      localList &&
+      (localList.lastModified > remoteList.lastModified ||
+        (localList.lastModified === remoteList.lastModified && localList.hash > remoteList.hash))
+    ) {
+      continue;
+    }
+
+    if (remoteList.is_deleted) {
+      await tx.objectStore('task-lists').delete(remoteList.id);
+    } else {
+      await tx.objectStore('task-lists').put(remoteList);
+    }
+  }
+
+  for (const remoteTask of changes.tasks) {
+    const localTask = await tx.objectStore('tasks').get(remoteTask.id);
+
+    if (
+      localTask &&
+      (localTask.lastModified > remoteTask.lastModified ||
+        (localTask.lastModified === remoteTask.lastModified && localTask.hash > remoteTask.hash))
+    ) {
+      continue;
+    }
+
+    if (remoteTask.is_deleted) {
+      await tx.objectStore('tasks').delete(remoteTask.id);
+    } else {
+      await tx.objectStore('tasks').put(remoteTask);
+    }
+  }
+
   await tx.done;
 }

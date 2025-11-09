@@ -28,3 +28,11 @@ dev-dist
 # Vitest coverage
 coverage/
 
+# Environment variables
+.env
+!.env.example
+
+# Database
+postgres-data/
+generated/
+
