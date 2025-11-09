@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 
 import App from '@src/App';
 import AuthProvider from '@src/components/AuthProvider';
-import { RealtimeProvider } from '@src/components/RealtimeProvider.tsx';
+import { RealtimeProvider } from '@src/components/RealtimeProvider';
 import { SyncProvider } from '@src/components/SyncProvider';
 import ThemeProvider from '@src/components/ThemeProvider';
 import { createRoot } from 'react-dom/client';
