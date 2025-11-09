@@ -17,6 +17,10 @@ export const initializeSocket = (): T8DSocket | undefined => {
   if (socket?.connected) {
     return socket;
   }
+  if (socket) {
+    socket.close();
+    socket = undefined;
+  }
 
   const baseUrl = getApiBaseUrl();
   const token = getToken();
@@ -61,7 +65,7 @@ export const initializeSocket = (): T8DSocket | undefined => {
 export const disconnectSocket = (): void => {
   if (socket) {
     console.info('[Realtime] Disconnecting...');
-    socket.disconnect();
+    socket.close();
     socket = undefined;
   }
 };
