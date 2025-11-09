@@ -3,6 +3,7 @@ import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { prisma } from '../db/client.js';
+import { notifyUserUpdate } from '../realtime/notifier.js';
 
 const TaskStatusSchema = z.enum(['not_completed', 'completed']);
 
@@ -180,6 +181,10 @@ export const syncMain = async (req: Request, res: Response) => {
         pulled: { taskLists: pulledLists, tasks: pulledTasks },
       };
     });
+
+    if (result.pushed.lists > 0 || result.pushed.tasks > 0) {
+      notifyUserUpdate(user.id);
+    }
 
     console.info(
       `[Sync] Success for ${user.id}. Pushed: ${String(result.pushed.tasks)} tasks. Pulled: ${String(result.pulled.tasks.length)} tasks.`,
