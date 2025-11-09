@@ -26,6 +26,8 @@ function SyncManager() {
   const [apiSaverError, setApiSaverError] = useState<string | null>(null);
   const [apiSaverSuccess, setApiSaverSuccess] = useState<string | null>(null);
   const [isSyncEnabled, setIsSyncEnabled] = useState<boolean>(getSyncEnabled());
+  const [isSyncInitializing, setIsSyncInitializing] = useState(false);
+
   const { user, logout, isLoading } = useAuth();
 
   const handleBaseUrlSave = () => {
@@ -64,15 +66,21 @@ function SyncManager() {
     }
   };
 
-  const handleSyncToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSyncToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setIsSyncEnabled(newValue);
     setSyncEnabled(newValue);
 
     if (newValue) {
-      void queueAllLocalData();
+      setIsSyncInitializing(true);
+      try {
+        await queueAllLocalData();
+      } finally {
+        setIsSyncInitializing(false);
+      }
     }
   };
+
   if (isLoading) {
     return (
       <div className="w-full max-w-xl mx-auto p-6 text-slate-800 dark:text-slate-200">
@@ -123,20 +131,28 @@ function SyncManager() {
               <label htmlFor="sync-toggle" className="text-slate-700 dark:text-slate-300 font-medium">
                 Enable Synchronization
               </label>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  id="sync-toggle"
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={isSyncEnabled}
-                  onChange={handleSyncToggle}
-                />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 dark:peer-focus:ring-sky-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-sky-600"></div>
-              </label>
+              <div className="flex items-center gap-2">
+                {isSyncInitializing && <span className="text-xs text-slate-500 animate-pulse">Initializing...</span>}
+                <label
+                  className={`relative inline-flex items-center ${isSyncInitializing ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                >
+                  <input
+                    id="sync-toggle"
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={isSyncEnabled}
+                    onChange={e => {
+                      void handleSyncToggle(e);
+                    }}
+                    disabled={isSyncInitializing}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 dark:peer-focus:ring-sky-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-sky-600"></div>
+                </label>
+              </div>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               {isSyncEnabled
-                ? 'Your tasks will be synced with the server (Functionality coming soon).'
+                ? 'Your tasks will be synced with the server.'
                 : 'Sync is disabled. Your tasks are only stored on this device.'}
             </p>
           </div>
@@ -146,7 +162,6 @@ function SyncManager() {
             <br />
             Name: <strong className="text-sky-600 dark:text-sky-400">{user.name || 'Not set'}</strong>
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Data synchronization is not yet implemented.</p>
 
           <button
             type="button"
