@@ -5,7 +5,17 @@ import { Server as SocketIOServer } from 'socket.io';
 
 import { getAllowedOrigins } from '../utils/cors.js';
 
-let io: SocketIOServer | undefined;
+import {
+  ClientToServerEvents,
+  InterServerEvents,
+  ServerToClientEvents,
+  socketAuthMiddleware,
+  T8DSocketData,
+} from './middleware.js';
+
+export type T8DServer = SocketIOServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, T8DSocketData>;
+
+let io: T8DServer | undefined;
 
 export const initializeSocketIO = (app: Express): HttpServer => {
   const httpServer = createServer(app);
@@ -19,21 +29,24 @@ export const initializeSocketIO = (app: Express): HttpServer => {
     },
   });
 
+  io.use((socket, next) => {
+    void socketAuthMiddleware(socket, next);
+  });
+
   io.on('connection', socket => {
-    console.info(`[WebSocket] Client connected: ${socket.id}`);
+    console.info(`[WebSocket] User connected: ${socket.data.user.email} (${socket.id})`);
 
     socket.on('disconnect', () => {
-      console.info(`[WebSocket] Client disconnected: ${socket.id}`);
+      console.info(`[WebSocket] User disconnected: ${socket.data.user.email} (${socket.id})`);
     });
   });
 
-  // Nicer logging for arrays
   const originLog = Array.isArray(allowedOrigins) ? allowedOrigins.join(', ') : allowedOrigins;
   console.info(`[WebSocket] Initialized (Allowed Origins: ${originLog})`);
   return httpServer;
 };
 
-export const getIO = (): SocketIOServer => {
+export const getIO = (): T8DServer => {
   if (!io) {
     throw new Error('Socket.io has not been initialized!');
   }
