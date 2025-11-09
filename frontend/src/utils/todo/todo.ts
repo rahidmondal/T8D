@@ -235,7 +235,7 @@ export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskL
     throw new Error(`Task list with id ${listId} not found`);
   }
 
-  const updatedListData: TaskList = {
+  const updatedListData: Omit<TaskList, 'hash'> = {
     ...existingList,
     ...updates,
     lastModified: Date.now(),

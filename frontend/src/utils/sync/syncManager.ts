@@ -35,6 +35,10 @@ interface SyncResponse {
 }
 
 const safelyExecute = async (operationName: string, operation: () => Promise<void>) => {
+  if (!getSyncEnabled()) {
+    return;
+  }
+
   try {
     await operation();
   } catch (error) {
@@ -79,12 +83,6 @@ export const performSync = async (): Promise<void> => {
       } else if (entry.entity === 'TASK' && entry.payload) {
         payload.changes.tasks.push(entry.payload as Task);
       }
-    }
-
-    if (payload.changes.taskLists.length === 0 && payload.changes.tasks.length === 0 && !lastSync) {
-      console.info('[SyncManager] Nothing to sync.');
-      isSyncing = false;
-      return;
     }
 
     const response = await apiClient<SyncResponse>('/api/v1/sync/', {
@@ -174,6 +172,10 @@ export const pullChanges = (): void => {
 };
 
 export const queueAllLocalData = async (): Promise<void> => {
+  // NOTE: We do NOT use safelyExecute here because we want this to run
+  // even if it was just enabled (safelyExecute checks getSyncEnabled, which might be slightly racy on first toggle).
+  // Actually, handleSyncToggle calls this AFTER setting enabled, so it should be fine.
+  // Let's keep it safe and use safelyExecute to catch errors.
   await safelyExecute('queueAllLocalData', async () => {
     console.info('[SyncManager] Queueing ALL local data for initial sync...');
 
