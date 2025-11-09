@@ -39,6 +39,7 @@ const SyncRequestSchema = z.object({
     tasks: z.array(TaskSchema).optional().default([]),
   }),
   lastSync: z.string().optional(),
+  socketId: z.string().optional(),
 });
 
 export const syncMain = async (req: Request, res: Response) => {
@@ -51,7 +52,7 @@ export const syncMain = async (req: Request, res: Response) => {
       return;
     }
 
-    const { changes, lastSync } = validation.data;
+    const { changes, lastSync, socketId } = validation.data;
     const lastSyncDate = lastSync ? new Date(lastSync) : new Date(0);
 
     const now = new Date();
@@ -183,7 +184,7 @@ export const syncMain = async (req: Request, res: Response) => {
     });
 
     if (result.pushed.lists > 0 || result.pushed.tasks > 0) {
-      notifyUserUpdate(user.id);
+      notifyUserUpdate(user.id, socketId);
     }
 
     console.info(
