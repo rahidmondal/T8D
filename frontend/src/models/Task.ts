@@ -1,5 +1,5 @@
 export enum TaskStatus {
-  NOT_COMPLETED = 'not-completed',
+  NOT_COMPLETED = 'not_completed',
   COMPLETED = 'completed',
 }
 
@@ -19,4 +19,5 @@ export interface Task {
   order: number;
 
   metadata?: Record<string, string | number | boolean | string[] | null>;
+  is_deleted?: boolean;
 }

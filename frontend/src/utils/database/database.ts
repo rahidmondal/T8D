@@ -46,7 +46,6 @@ export async function getDB() {
   const dbPromise = await openDB<T8DDatabase>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
-        // Create Object Store for tasks
         const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
         taskStore.createIndex('by-status', 'status');
         taskStore.createIndex('by-parent', 'parentId');
@@ -179,13 +178,27 @@ export async function deleteAllTaskListsFromDb(): Promise<void> {
 
 // ---  Sync Outbox Operations ---
 
+export async function getAllOutboxEntries(): Promise<OutboxEntry[]> {
+  const db = await getDB();
+  return db.getAll('sync-outbox');
+}
+
+export async function clearOutbox(untilId?: number): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('sync-outbox', 'readwrite');
+  if (untilId !== undefined) {
+    await tx.store.delete(IDBKeyRange.upperBound(untilId));
+  } else {
+    await tx.store.clear();
+  }
+  await tx.done;
+}
+
 export async function addToOutbox(entry: Omit<OutboxEntry, 'id'>): Promise<number> {
   const db = await getDB();
   return db.add('sync-outbox', entry);
 }
 
-// Get the *next* item to sync (FIFO).
-// We use a cursor to just get the first one efficiently.
 export async function getNextOutboxEntry(): Promise<OutboxEntry | undefined> {
   const db = await getDB();
   const tx = db.transaction('sync-outbox', 'readonly');
@@ -193,14 +206,55 @@ export async function getNextOutboxEntry(): Promise<OutboxEntry | undefined> {
   return cursor?.value;
 }
 
-// Remove an item from the outbox (called after successful sync).
 export async function removeOutboxEntry(id: number): Promise<void> {
   const db = await getDB();
   await db.delete('sync-outbox', id);
 }
 
-// Helpful for UI to show "5 items pending sync"
 export async function getOutboxCount(): Promise<number> {
   const db = await getDB();
   return db.count('sync-outbox');
+}
+
+export async function applyServerChanges(changes: { taskLists: TaskList[]; tasks: Task[] }): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['task-lists', 'tasks'], 'readwrite');
+
+  for (const remoteList of changes.taskLists) {
+    const localList = await tx.objectStore('task-lists').get(remoteList.id);
+
+    if (
+      localList &&
+      (localList.lastModified > remoteList.lastModified ||
+        (localList.lastModified === remoteList.lastModified && localList.hash > remoteList.hash))
+    ) {
+      continue;
+    }
+
+    if (remoteList.is_deleted) {
+      await tx.objectStore('task-lists').delete(remoteList.id);
+    } else {
+      await tx.objectStore('task-lists').put(remoteList);
+    }
+  }
+
+  for (const remoteTask of changes.tasks) {
+    const localTask = await tx.objectStore('tasks').get(remoteTask.id);
+
+    if (
+      localTask &&
+      (localTask.lastModified > remoteTask.lastModified ||
+        (localTask.lastModified === remoteTask.lastModified && localTask.hash > remoteTask.hash))
+    ) {
+      continue;
+    }
+
+    if (remoteTask.is_deleted) {
+      await tx.objectStore('tasks').delete(remoteTask.id);
+    } else {
+      await tx.objectStore('tasks').put(remoteTask);
+    }
+  }
+
+  await tx.done;
 }
