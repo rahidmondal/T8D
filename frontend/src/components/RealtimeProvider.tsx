@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { RealtimeContext } from '../context/RealtimeContext';
 import { useAuth } from '../hooks/useAuth';
@@ -10,24 +10,30 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [socket, setSocket] = useState<T8DSocket | undefined>(undefined);
   const [isConnected, setIsConnected] = useState(false);
 
+  const attachedSocketRef = useRef<T8DSocket | undefined>(undefined);
+
   useEffect(() => {
-    let activeSocket: T8DSocket | undefined;
-
     if (user) {
-      activeSocket = initializeSocket();
-      setSocket(activeSocket);
+      const socketInstance = initializeSocket();
+      setSocket(socketInstance);
 
-      if (activeSocket) {
-        setIsConnected(activeSocket.connected);
+      if (socketInstance && socketInstance !== attachedSocketRef.current) {
+        if (attachedSocketRef.current) {
+          attachedSocketRef.current.off('connect');
+          attachedSocketRef.current.off('disconnect');
+          attachedSocketRef.current.off('SYNC_POKE');
+        }
 
-        activeSocket.on('connect', () => {
+        attachedSocketRef.current = socketInstance;
+        setIsConnected(socketInstance.connected);
+
+        const onConnect = () => {
           setIsConnected(true);
-        });
-        activeSocket.on('disconnect', () => {
+        };
+        const onDisconnect = () => {
           setIsConnected(false);
-        });
-
-        activeSocket.on('SYNC_POKE', async () => {
+        };
+        const onPoke = async () => {
           console.info('[Realtime] Received Poke 👉. Syncing...');
           try {
             await performSync();
@@ -35,22 +41,34 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           } catch (err) {
             console.error('[Realtime] Failed to sync after poke:', err);
           }
-        });
+        };
+
+        socketInstance.on('connect', onConnect);
+        socketInstance.on('disconnect', onDisconnect);
+        socketInstance.on('SYNC_POKE', onPoke);
       }
     } else {
+      if (attachedSocketRef.current) {
+        attachedSocketRef.current.off('connect');
+        attachedSocketRef.current.off('disconnect');
+        attachedSocketRef.current.off('SYNC_POKE');
+        attachedSocketRef.current = undefined;
+      }
       disconnectSocket();
       setSocket(undefined);
       setIsConnected(false);
     }
+  }, [user]);
 
+  useEffect(() => {
     return () => {
-      if (activeSocket) {
-        activeSocket.off('connect');
-        activeSocket.off('disconnect');
-        activeSocket.off('SYNC_POKE');
+      if (attachedSocketRef.current) {
+        attachedSocketRef.current.off('connect');
+        attachedSocketRef.current.off('disconnect');
+        attachedSocketRef.current.off('SYNC_POKE');
       }
     };
-  }, [user]);
+  }, []);
 
   return <RealtimeContext.Provider value={{ isConnected, socket }}>{children}</RealtimeContext.Provider>;
 };
