@@ -46,7 +46,6 @@ export const syncMain = async (req: Request, res: Response) => {
 
     const validation = SyncRequestSchema.safeParse(req.body);
     if (!validation.success) {
-      console.error('[Sync] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       res.status(400).json({ message: 'Invalid sync data', errors: validation.error.issues });
       return;
     }
@@ -74,7 +73,12 @@ export const syncMain = async (req: Request, res: Response) => {
         for (const list of changes.taskLists) {
           const existing = existingListMap.get(list.id);
 
-          if (!existing || list.lastModified.getTime() > existing.lastModified.getTime()) {
+          const shouldUpdate =
+            !existing ||
+            list.lastModified.getTime() > existing.lastModified.getTime() ||
+            (list.lastModified.getTime() === existing.lastModified.getTime() && list.hash > existing.hash);
+
+          if (shouldUpdate) {
             await tx.taskList.upsert({
               where: { id: list.id },
               create: {
@@ -114,7 +118,12 @@ export const syncMain = async (req: Request, res: Response) => {
         for (const task of changes.tasks) {
           const existing = existingTaskMap.get(task.id);
 
-          if (!existing || task.lastModified.getTime() > existing.lastModified.getTime()) {
+          const shouldUpdate =
+            !existing ||
+            task.lastModified.getTime() > existing.lastModified.getTime() ||
+            (task.lastModified.getTime() === existing.lastModified.getTime() && task.hash > existing.hash);
+
+          if (shouldUpdate) {
             await tx.task.upsert({
               where: { id: task.id },
               create: {
