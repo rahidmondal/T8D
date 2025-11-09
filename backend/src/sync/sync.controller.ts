@@ -3,6 +3,7 @@ import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { prisma } from '../db/client.js';
+import { notifyUserUpdate } from '../realtime/notifier.js';
 
 const TaskStatusSchema = z.enum(['not_completed', 'completed']);
 
@@ -38,6 +39,7 @@ const SyncRequestSchema = z.object({
     tasks: z.array(TaskSchema).optional().default([]),
   }),
   lastSync: z.string().optional(),
+  socketId: z.string().optional(),
 });
 
 export const syncMain = async (req: Request, res: Response) => {
@@ -50,7 +52,7 @@ export const syncMain = async (req: Request, res: Response) => {
       return;
     }
 
-    const { changes, lastSync } = validation.data;
+    const { changes, lastSync, socketId } = validation.data;
     const lastSyncDate = lastSync ? new Date(lastSync) : new Date(0);
 
     const now = new Date();
@@ -180,6 +182,10 @@ export const syncMain = async (req: Request, res: Response) => {
         pulled: { taskLists: pulledLists, tasks: pulledTasks },
       };
     });
+
+    if (result.pushed.lists > 0 || result.pushed.tasks > 0) {
+      notifyUserUpdate(user.id, socketId);
+    }
 
     console.info(
       `[Sync] Success for ${user.id}. Pushed: ${String(result.pushed.tasks)} tasks. Pulled: ${String(result.pulled.tasks.length)} tasks.`,

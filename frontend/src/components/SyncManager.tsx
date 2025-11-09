@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@src/hooks/useAuth';
+import { useSyncState } from '@src/hooks/useSyncState';
 import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
-import { queueAllLocalData } from '@src/utils/sync/syncManager';
-import { getSyncEnabled, setSyncEnabled } from '@src/utils/sync/syncSettings';
+import { performSync, queueAllLocalData } from '@src/utils/sync/syncManager';
+import { getSyncEnabled, getSyncInterval, isAutoSyncEnabled, setSyncEnabled } from '@src/utils/sync/syncSettings';
 
 import EditUserForm from './EditUserForm';
 import LoginForm from './LoginForm';
@@ -29,6 +30,39 @@ function SyncManager() {
   const [isSyncInitializing, setIsSyncInitializing] = useState(false);
 
   const { user, logout, isLoading } = useAuth();
+  const { isSyncing, setSyncing } = useSyncState();
+
+  const runSync = useCallback(async () => {
+    if (!user || !navigator.onLine) return;
+
+    try {
+      setSyncing(true);
+      await performSync();
+    } catch (error) {
+      console.error('[SyncManager] Auto-sync failed:', error);
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, setSyncing]);
+
+  useEffect(() => {
+    if (!user || !isAutoSyncEnabled()) return () => {};
+    void runSync();
+
+    const intervalId = setInterval(() => {
+      void runSync();
+    }, getSyncInterval());
+
+    const handleOnline = () => {
+      void runSync();
+    };
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [user, runSync]);
 
   const handleBaseUrlSave = () => {
     setApiSaverError(null);
@@ -75,6 +109,7 @@ function SyncManager() {
       setIsSyncInitializing(true);
       try {
         await queueAllLocalData();
+        void runSync();
       } finally {
         setIsSyncInitializing(false);
       }
@@ -180,6 +215,12 @@ function SyncManager() {
             Logout
           </button>
         </section>
+        {isSyncing && (
+          <div className="fixed bottom-4 right-4 bg-base-200 p-2 rounded-full shadow-lg z-50 flex items-center gap-2 text-xs animate-pulse">
+            <span className="loading loading-spinner loading-xs text-primary"></span>
+            Syncing...
+          </div>
+        )}
       </div>
     );
   }
