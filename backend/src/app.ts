@@ -8,6 +8,7 @@ import { disconnectPrisma } from './db/queries.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initializeSocketIO } from './realtime/init.js';
 import apiRouter from './routes/index.js';
+import { getAllowedOrigins } from './utils/cors.js';
 
 // --- 1.Initial Configuration ---
 configDotenv();
@@ -17,9 +18,10 @@ const PORT = Number(process.env.SERVER_PORT ?? 3000);
 
 // --- 2.Core Middleware ---
 const corsOptions: CorsOptions = {
-  origin: process.env.CORS_ORIGIN ?? '*',
+  origin: getAllowedOrigins(),
   credentials: true,
 };
+app.use(cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(passport.initialize());

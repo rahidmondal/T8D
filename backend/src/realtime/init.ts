@@ -3,16 +3,17 @@ import { createServer, type Server as HttpServer } from 'http';
 import { type Express } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 
+import { getAllowedOrigins } from '../utils/cors.js';
+
 let io: SocketIOServer | undefined;
 
 export const initializeSocketIO = (app: Express): HttpServer => {
   const httpServer = createServer(app);
-
-  const allowedOrigin = process.env.CORS_ORIGIN ?? '*';
+  const allowedOrigins = getAllowedOrigins();
 
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: allowedOrigin,
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -26,7 +27,9 @@ export const initializeSocketIO = (app: Express): HttpServer => {
     });
   });
 
-  console.info(`[WebSocket] Initialized (Allowed Origin: ${allowedOrigin})`);
+  // Nicer logging for arrays
+  const originLog = Array.isArray(allowedOrigins) ? allowedOrigins.join(', ') : allowedOrigins;
+  console.info(`[WebSocket] Initialized (Allowed Origins: ${originLog})`);
   return httpServer;
 };
 
