@@ -56,9 +56,20 @@ export const performSync = async (): Promise<void> => {
     const outboxEntries = await getAllOutboxEntries();
     const lastSync = localStorage.getItem(LAST_SYNC_KEY) || undefined;
 
+    let maxProcessedId = 0;
+
     const uniqueEntries = new Map<string, OutboxEntry>();
     for (const entry of outboxEntries) {
-      uniqueEntries.set(entry.targetId, entry);
+      if (entry.id === undefined) continue;
+
+      if (entry.id > maxProcessedId) {
+        maxProcessedId = entry.id;
+      }
+
+      const existing = uniqueEntries.get(entry.targetId);
+      if (!existing || entry.id > (existing.id ?? 0)) {
+        uniqueEntries.set(entry.targetId, entry);
+      }
     }
 
     const payload: SyncPayload = {
@@ -73,8 +84,6 @@ export const performSync = async (): Promise<void> => {
         payload.changes.tasks.push(entry.payload as Task);
       }
     }
-
-    const lastProcessedId = outboxEntries.length > 0 ? outboxEntries[outboxEntries.length - 1].id : undefined;
 
     if (payload.changes.taskLists.length === 0 && payload.changes.tasks.length === 0 && !lastSync) {
       console.info('[SyncManager] Nothing to sync.');
@@ -96,8 +105,8 @@ export const performSync = async (): Promise<void> => {
       await applyServerChanges(response.changes);
     }
 
-    if (lastProcessedId !== undefined) {
-      await clearOutbox(lastProcessedId);
+    if (maxProcessedId > 0) {
+      await clearOutbox(maxProcessedId);
     }
 
     localStorage.setItem(LAST_SYNC_KEY, response.timestamp);
