@@ -43,6 +43,7 @@ export const generateTaskHash = async (task: Omit<Task, 'hash'>): Promise<string
     task.dueDate?.toString() ?? '',
     task.parentId ?? '',
     task.listId,
+    task.is_deleted ? 'true' : 'false',
   ];
 
   return generateHash(dataToHash);
@@ -121,11 +122,9 @@ export const deleteTask = async (taskId: string): Promise<void> => {
   const finalParentId = existingTask.parentId ?? null;
 
   const performDelete = async (currentTaskId: string): Promise<void> => {
-    // 1. Fetch task to create tombstone
     const taskToDelete = await getTaskFromDb(currentTaskId);
     if (!taskToDelete) return;
 
-    // 2. Handle children
     const childTasks = await getTasksByParentFromDb(currentTaskId);
     const childPromise = childTasks.map(childTask => {
       if (childTask.status === TaskStatus.COMPLETED) {
@@ -136,17 +135,17 @@ export const deleteTask = async (taskId: string): Promise<void> => {
     });
     await Promise.all(childPromise);
 
-    // 3. Create Tombstone
-    const tombstone: Task = {
+    const now = Date.now();
+    const tombstoneData = {
       ...taskToDelete,
       is_deleted: true,
-      lastModified: Date.now(),
+      lastModified: now,
     };
+    const hash = await generateTaskHash(tombstoneData);
+    const tombstone: Task = { ...tombstoneData, hash };
 
-    // 4. Delete locally
     await deleteTaskFromDb(currentTaskId);
 
-    // 5. Queue tombstone
     void SyncManager.pushTaskDelete(tombstone);
   };
 
@@ -174,7 +173,14 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 // --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
-  const dataToHash = [list.id, list.name, list.description ?? '', list.lastModified.toString(), list.order.toString()];
+  const dataToHash = [
+    list.id,
+    list.name,
+    list.description ?? '',
+    list.lastModified.toString(),
+    list.order.toString(),
+    list.is_deleted ? 'true' : 'false',
+  ];
 
   return generateHash(dataToHash);
 };
@@ -207,20 +213,19 @@ export const deleteTaskList = async (listId: string): Promise<void> => {
   const existingList = await getTaskListFromDb(listId);
   if (!existingList) return;
 
-  const tombstone: TaskList = {
-    ...existingList,
-    is_deleted: true,
-    lastModified: Date.now(),
-  };
-
-  // 2. Delete all tasks in the list
   const tasks = await getTasksByList(listId);
   await Promise.all(tasks.map(task => deleteTask(task.id)));
+  const now = Date.now();
+  const tombstoneData = {
+    ...existingList,
+    is_deleted: true,
+    lastModified: now,
+  };
+  const hash = await generateTaskListHash(tombstoneData);
+  const tombstone: TaskList = { ...tombstoneData, hash };
 
-  // 3. Delete list locally
   await deleteTaskListFromDb(listId);
 
-  // 4. Queue list tombstone
   void SyncManager.pushListDelete(tombstone);
 };
 
@@ -230,11 +235,13 @@ export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskL
     throw new Error(`Task list with id ${listId} not found`);
   }
 
-  const updatedList: TaskList = {
+  const updatedListData: TaskList = {
     ...existingList,
     ...updates,
     lastModified: Date.now(),
   };
+  const hash = await generateTaskListHash(updatedListData);
+  const updatedList: TaskList = { ...updatedListData, hash };
 
   await updateTaskListInDb(updatedList);
   void SyncManager.pushListChange(updatedList);
