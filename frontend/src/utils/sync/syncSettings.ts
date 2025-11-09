@@ -1,5 +1,6 @@
 const SYNC_ENABLED_KEY = 't8d-sync-enabled';
-const DEFAULT_SYNC_INTERVAL = 5 * 60 * 1000;
+const SYNC_INTERVAL_MINUTES = 5;
+const DEFAULT_SYNC_INTERVAL = SYNC_INTERVAL_MINUTES * 60 * 1000;
 
 export const getSyncEnabled = (): boolean => {
   try {
