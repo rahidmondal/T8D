@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 
 import App from '@src/App';
 import AuthProvider from '@src/components/AuthProvider';
+import { RealtimeProvider } from '@src/components/RealtimeProvider.tsx';
 import ThemeProvider from '@src/components/ThemeProvider';
 import { createRoot } from 'react-dom/client';
 
@@ -13,7 +14,9 @@ if (rootElement) {
     <StrictMode>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          <RealtimeProvider>
+            <App />
+          </RealtimeProvider>
         </AuthProvider>
       </ThemeProvider>
     </StrictMode>,
