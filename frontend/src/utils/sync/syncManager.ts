@@ -35,10 +35,6 @@ interface SyncResponse {
 }
 
 const safelyExecute = async (operationName: string, operation: () => Promise<void>) => {
-  if (!getSyncEnabled()) {
-    return;
-  }
-
   try {
     await operation();
   } catch (error) {
