@@ -3,5 +3,8 @@ export const getAllowedOrigins = (): string | string[] => {
   if (rawOrigin === '*') {
     return '*';
   }
-  return rawOrigin.split(',').map(origin => origin.trim());
+  return rawOrigin
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
 };
