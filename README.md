@@ -147,7 +147,6 @@ For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
 
 ### Project Policies
 
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
 - [LICENSE](LICENSE) - MIT License
 
 ---
@@ -210,7 +209,6 @@ We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) and 
 
 Security is a top priority. For security-related concerns:
 
-- **Report vulnerabilities**: See [SECURITY.md](SECURITY.md) for reporting procedures
 - **Security features**: JWT authentication, bcrypt password hashing, input validation
 - **Best practices**: Never commit secrets, use environment variables
 
