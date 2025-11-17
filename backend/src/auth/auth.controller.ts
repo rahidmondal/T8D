@@ -2,6 +2,7 @@ import { type User } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
+import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 import zxcvbn from 'zxcvbn';
 
@@ -27,9 +28,7 @@ const registerSchema = z.object({
   name: z
     .string()
     .min(1, 'Name is required')
-    .transform(value => {
-      return value.replace(/<[^>]*>?/gm, '');
-    })
+    .transform(v => sanitizeHtml(v, { allowedTags: [], allowedAttributes: {} }))
     .optional(),
 });
 
