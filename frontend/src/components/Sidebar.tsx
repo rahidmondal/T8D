@@ -313,7 +313,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>((props, ref) => {
           </nav>
         </div>
         <div className="flex justify-between items-center p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <p>T8D v1.3.0</p>
+          <p>T8D v1.3.1</p>
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
