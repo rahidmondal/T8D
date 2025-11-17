@@ -15,6 +15,7 @@ Get T8D up and running in minutes! Choose your preferred method below.
 **Perfect for**: Testing, production deployment, full-stack development
 
 ### Requirements
+
 - Docker Desktop installed ([Get Docker](https://docs.docker.com/get-docker/))
 
 ### Steps
@@ -24,34 +25,51 @@ Get T8D up and running in minutes! Choose your preferred method below.
 git clone https://github.com/rahidmondal/T8D.git
 cd T8D
 
-# 2. Create environment file
+# 2. Create environment file (set JWT_SECRET & DB password!)
 cp .env.example .env
 
-# 3. Start everything!
-docker-compose up -d
+# 3. Build & launch (Prisma migrations run automatically)
+docker compose up --build -d
 
-# 4. Access the app
+# 4. Tail backend logs to watch migrations/boot
+docker compose logs -f backend
+
+# 5. Access the app
 # Frontend: http://localhost:8080/T8D/
 # Backend API: http://localhost:3000/api/v1/
 ```
 
+You should see `[entrypoint] Applying Prisma migrations...` the first time the backend container starts. Subsequent restarts log `No pending migrations to apply.`
+
 That's it! 🎉
 
 ### What's Running?
+
 - **PostgreSQL**: Database on port 5432
 - **Backend API**: Node.js server on port 3000
 - **Frontend**: React PWA on port 8080
 
+### Quick Health Checks
+
+```bash
+# Backend health endpoint
+curl http://localhost:3000/health
+
+# Auth smoke test (expect 400 because body missing, proving route works)
+curl -i -X POST http://localhost:3000/api/v1/auth/login
+```
+
 ### Useful Commands
+
 ```bash
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop everything
-docker-compose down
+docker compose down
 
 # Rebuild after changes
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 📖 **More details**: See [DOCKER.md](DOCKER.md)
@@ -63,6 +81,7 @@ docker-compose up --build -d
 **Perfect for**: Contributing, customizing, learning the codebase
 
 ### Requirements
+
 - Node.js 18+ ([Download](https://nodejs.org/))
 - PostgreSQL 14+ ([Download](https://www.postgresql.org/download/))
 - pnpm ([Install](https://pnpm.io/installation))
@@ -83,9 +102,9 @@ cd backend
 cp .env.example .env
 # Edit .env with your database credentials
 
-# 4. Run migrations
-pnpm prisma migrate deploy
-pnpm prisma generate
+# 4. Prepare Prisma
+pnpm prisma migrate deploy   # apply schema locally
+pnpm prisma generate         # update Prisma Client
 
 # 5. Start development servers (from root)
 cd ..
@@ -93,6 +112,7 @@ pnpm run dev
 ```
 
 ### Access
+
 - **Frontend**: http://localhost:5173/T8D/
 - **Backend API**: http://localhost:3000/api/v1/
 
@@ -127,6 +147,7 @@ pnpm check
 **Perfect for**: Just trying the PWA, offline features
 
 ### Requirements
+
 - Node.js 18+
 - pnpm
 
@@ -152,19 +173,23 @@ pnpm run frontend:dev
 ## 🎮 First Steps After Setup
 
 ### 1. Create an Account (if using backend)
+
 Navigate to http://localhost:8080/T8D/ (or :5173 for local dev)
 
 ### 2. Try Offline Mode
+
 - Create some tasks
 - Disconnect from internet
 - Add/edit/delete tasks
 - Reconnect - your changes are saved!
 
 ### 3. Test PWA Installation
+
 - Click the install button in your browser
 - Or use browser menu: "Install T8D"
 
 ### 4. Explore Features
+
 - **Lists**: Create multiple task lists
 - **Subtasks**: Add nested tasks
 - **Dark Mode**: Toggle theme
@@ -188,8 +213,8 @@ docker ps  # See what's running
 
 ```bash
 # Check PostgreSQL is running
-docker-compose ps
-docker-compose logs postgres
+docker compose ps
+docker compose logs postgres
 ```
 
 ### Local Development Issues
@@ -225,16 +250,19 @@ kill -9 <PID>
 ## 📚 Next Steps
 
 ### For Users
+
 - 📖 Read the [README](README.md)
 - 🎯 Check the [Roadmap](README.md#roadmap)
 - 💬 Join [Discussions](https://github.com/rahidmondal/T8D/discussions)
 
 ### For Contributors
+
 - 📝 Read [CONTRIBUTING.md](CONTRIBUTING.md)
 - 🔄 Learn the [WORKFLOW.md](WORKFLOW.md)
 - 🐛 Find [Good First Issues](https://github.com/rahidmondal/T8D/labels/good%20first%20issue)
 
 ### For Deployers
+
 - 🐳 Full [Docker Guide](DOCKER.md)
 - 🔧 [Backend Setup](backend/SETUP.md)
 - 📡 [API Documentation](backend/API_DOCUMENTATION.md)
@@ -247,8 +275,8 @@ kill -9 <PID>
 
 ```bash
 # Docker
-docker-compose down -v
-docker-compose up --build -d
+docker compose down -v
+docker compose up --build -d
 
 # Local
 cd backend
@@ -262,7 +290,7 @@ pnpm run dev
 ```bash
 git pull origin main
 pnpm install
-docker-compose up --build -d  # If using Docker
+docker compose up --build -d  # If using Docker
 # or
 pnpm run dev  # If using local setup
 ```
@@ -287,13 +315,13 @@ pnpm format:check
 - 🐛 [Report Issues](https://github.com/rahidmondal/T8D/issues)
 - 💬 [Ask Questions](https://github.com/rahidmondal/T8D/discussions)
 - 📖 [Read Docs](README.md)
-- 🔒 [Security Issues](SECURITY.md)
 
 ---
 
 ## ⭐ Show Your Support
 
 If you find T8D useful:
+
 - ⭐ Star the repository
 - 🐛 Report bugs
 - 💡 Suggest features

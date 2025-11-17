@@ -166,12 +166,14 @@ pnpm prisma generate
 ### Run Database Migrations
 
 ```bash
-# Apply all migrations
+# Apply all migrations locally
 pnpm prisma migrate deploy
 
 # Or for development (creates migration if schema changed)
 pnpm prisma migrate dev
 ```
+
+> **Docker users:** the backend container's entrypoint automatically runs `pnpm dlx prisma migrate deploy` before starting the server. You can trigger it manually with `docker compose exec backend pnpm dlx prisma migrate deploy` if needed.
 
 ### Seed Database (Optional)
 
@@ -406,11 +408,11 @@ pm2 save
 
 #### Option 2: Docker Deployment
 
-See [DOCKER.md](../DOCKER.md) for complete Docker deployment guide.
+See [DOCKER.md](../DOCKER.md) for the full container guide—Docker runs Prisma migrations automatically on startup.
 
 ```bash
 # Quick start
-docker-compose up -d
+docker compose up -d
 ```
 
 #### Option 3: Cloud Platforms

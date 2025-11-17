@@ -1,176 +1,133 @@
 # T8D Frontend
 
-The React + TypeScript client application for T8D - an offline-first, private to-do list manager with modern UI and PWA capabilities.
+The React + TypeScript PWA that powers T8D's offline-first experience, real-time sync UI, and privacy-first task management.
 
-## ✨ Features
+## Table of Contents
 
-### Core Functionality
+1. [Highlights](#-highlights)
+2. [Architecture](#-architecture)
+3. [Project Layout](#-project-layout)
+4. [Prerequisites](#-prerequisites)
+5. [Quick Start](#-quick-start)
+6. [Scripts](#-scripts)
+7. [State, Data & Sync](#-state-data--sync)
+8. [Styling & PWA](#-styling--pwa)
+9. [Testing & Quality](#-testing--quality)
+10. [Build & Deploy](#-build--deploy)
+11. [Troubleshooting](#-troubleshooting)
 
-- **Offline-First Architecture:** Full functionality without internet connectivity
-- **Private Task Management:** All data stored locally on your device
-- **Progressive Web App:** Installable on desktop and mobile devices
-- **Real-time Updates:** Instant UI updates with optimistic rendering
+## ✨ Highlights
 
-### Task Management
+- **Offline-first UX** backed by IndexedDB and background sync queues.
+- **Optimistic UI + realtime** hooks that reconcile with the backend Socket.IO stream.
+- **Installable PWA** with service worker precache, manifest, and `/T8D/` base path routing.
+- **Data privacy**—everything stays local until you opt into sync or backups.
+- **Keyboard-centric workflow** with quick add, shortcuts, and focus management.
 
-- Create, edit, and delete tasks
-- Organize tasks into custom lists
-- Subtask support with nested hierarchy
-- Task completion tracking
-- Quick task creation with keyboard shortcuts
+## 🧱 Architecture
 
-### User Experience
+- **React 19 + TypeScript** functional components.
+- **Context + hooks** for auth, sync, realtime, task list state, and theme.
+- **Utility domains** (`utils/api`, `backup`, `database`, `todo`) keep side-effects isolated.
+- **Granular components** (sidebar, modals, counters, forms) for composability.
+- **Service worker** handles caching; IndexedDB persists task graphs.
 
-- **Responsive Design:** Works seamlessly on all screen sizes
-- **Dark/Light Theme:** Automatic theme switching based on system preference
-- **Fast Performance:** Built with Vite for lightning-fast development and builds
-- **Accessibility:** WCAG 2.1 compliant interface
-
-### Data Management
-
-- **Local Storage:** IndexedDB for robust offline data persistence
-- **Backup & Restore:** Export/import your data as JSON
-- **Data Privacy:** No data leaves your device unless you choose to export
-
-## 🛠️ Technical Details
-
-### Tech Stack
-
-- **React 18** with hooks and functional components
-- **TypeScript** for type safety and better DX
-- **Vite** for fast development and optimized builds
-- **Tailwind CSS** for utility-first styling
-- **IndexedDB** via `idb` library for local storage
-- **PWA** with service worker and web app manifest
-
-### Architecture Patterns
-
-- **Component-Based:** Modular React components with single responsibility
-- **Context API:** Global state management for theme and task lists
-- **Custom Hooks:** Reusable logic for data fetching and state management
-- **Utility-First:** Organized utility functions by domain
-
-## 📂 Project Structure
+## 📂 Project Layout
 
 ```
 frontend/
 ├── src/
-│   ├── components/          # React components
-│   │   ├── TodoList.tsx    # Main task list component
-│   │   ├── TodoItem.tsx    # Individual task component
-│   │   ├── Sidebar.tsx     # Navigation sidebar
-│   │   └── ...
-│   ├── context/            # React Context providers
-│   │   ├── ThemeContext.ts # Theme state management
-│   │   └── TaskListContext.ts
-│   ├── hooks/              # Custom React hooks
-│   │   ├── useTheme.ts     # Theme management
-│   │   └── useTaskLists.ts # Task list operations
-│   ├── models/             # TypeScript type definitions
-│   │   ├── Task.ts         # Task model
-│   │   └── TaskList.ts     # Task list model
-│   ├── utils/              # Utility functions
-│   │   ├── todo/           # Task-related utilities
-│   │   ├── database/       # IndexedDB operations
-│   │   └── backup/         # Backup/restore logic
-│   └── assets/             # Static assets
-├── tests/                  # Test files
-├── public/                 # Static public assets
-└── ...config files
+│   ├── components/          # UI building blocks (Sidebar, TodoList, etc.)
+│   ├── context/             # Providers for auth, theme, realtime, sync, lists
+│   ├── hooks/               # useTaskLists, useAuth, useSyncState, etc.
+│   ├── models/              # Task & TaskList TypeScript types
+│   ├── utils/               # API helpers, IndexedDB layer, backup flows
+│   ├── assets/              # Static images/icons
+│   └── main.tsx             # App bootstrap + providers
+├── public/                  # Manifest, icons, robots, etc.
+├── tests/                   # Vitest + Testing Library specs
+├── tailwind.config.js       # Design tokens + safelist
+├── vite.config.ts           # Vite + PWA + tsconfig paths
+└── README.md                # This document
 ```
 
-## 🚀 Development
+## ✅ Prerequisites
 
-### Prerequisites
+- Node.js 18+
+- pnpm 8+
+- Backend running (optional) for realtime sync; see `../backend/README.md` for details.
 
-- Node.js (v18+)
-- pnpm (recommended)
-
-### Getting Started
+## 🚀 Quick Start
 
 ```bash
-# Install dependencies
+cd frontend
 pnpm install
+pnpm dev
 
-# Start development server
-pnpm run dev
-
-# Open http://localhost:5173/T8D/ in your browser
+# Open http://localhost:5173/T8D/
 ```
 
-## 📱 PWA Features
+- The dev server proxies API calls to `http://localhost:3000` (adjust via `src/utils/api` if needed).
+- For end-to-end Docker bring-up, follow the root `QUICKSTART.md` or `DOCKER.md`.
 
-### Installation
-
-- Install as app on desktop/mobile
-- Offline functionality
-- Native app-like experience
-
-### Service Worker
-
-- Caches static assets
-- Background sync (planned)
-- Push notifications (planned)
-
-## 🎨 Styling & Theming
-
-### Tailwind CSS
-
-- Utility-first CSS framework
-- Responsive design classes
-- Custom design system
-
-### Theme System
-
-- Manual theme switching
-- CSS custom properties for dynamic theming
-
-### Vite Configuration
-
-See `vite.config.ts` for:
-
-- PWA settings
-- Build optimization
-- Development server config
-
-## 🚢 Deployment
-
-### Production Build
+## 🛠 Scripts
 
 ```bash
-pnpm run build
-# Outputs to dist/ directory
+pnpm dev            # Vite dev server with HMR
+pnpm build          # Production build to dist/
+pnpm preview        # Preview the production bundle
+pnpm test           # Vitest + Testing Library
+pnpm lint           # ESLint (see frontend/eslint.config.js)
+pnpm format         # Prettier write
 ```
 
-## 🔍 Browser Support
+These commands run from `frontend/` or via workspace aliases: `pnpm --filter t8d <script>`.
 
-- **Modern Browsers:** Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- **PWA Support:** Chrome, Firefox, Safari (limited), Edge
-- **IndexedDB:** All modern browsers
+## 🔄 State, Data & Sync
 
-## 🐛 Troubleshooting
+- **AuthContext + AuthProvider** manage JWT state pulled from backend auth routes.
+- **TaskListProvider** stores the local task tree, backed by IndexedDB collections defined under `utils/database`.
+- **SyncProvider / RealtimeProvider** queue offline writes, replay them when connectivity returns, and subscribe to Socket.IO events for live merges.
+- **Backup utilities** allow exporting/importing JSON snapshots, giving users manual control over data portability.
+- **API utilities** centralize fetch logic and gracefully degrade to offline mode when network requests fail.
 
-### Common Issues
+## 🎨 Styling & PWA
 
-**Development server won't start:**
+- Tailwind CSS drives the utility-first design system (config in `tailwind.config.js`).
+- Theme toggles via `ThemeProvider`, reading prefers-color-scheme and persisting to local storage.
+- PWA configuration sits in `vite.config.ts` (via `vite-plugin-pwa`) with manifest + icons in `public/`.
+- Service worker caches static assets and bootstraps offline shell; future enhancements (push, background sync) are flagged in TODO comments.
+
+## 🧪 Testing & Quality
 
 ```bash
-# Clear cache and reinstall
-rm -rf node_modules .vite
-pnpm install
+pnpm test            # Unit + component tests (Vitest + RTL)
+pnpm test --ui       # Optional watch/UI mode
+pnpm lint            # ESLint (React hooks, accessibility, imports)
+pnpm format:check    # Ensure formatting
+pnpm check           # Run from repo root for lint + format + type + tests
 ```
 
-**IndexedDB issues:**
+- Frontend tests live in `frontend/tests` mirroring the `src` structure (`components`, `utils/backup`, etc.).
+- `tests/setup/setup.ts` configures the DOM environment, fake IndexedDB, and global mocks.
 
-- Check browser storage quotas
-- Clear application data in DevTools
+## 🚢 Build & Deploy
 
-**PWA not updating:**
+```bash
+pnpm build          # Generates dist/ with hashed assets
+pnpm preview        # Serves dist/ for smoke checks
+```
 
-- Clear service worker cache
-- Force refresh (Ctrl+Shift+R)
-- Check network tab for update requests
+- The Docker frontend image (see `../frontend/Dockerfile`) runs `pnpm build` and copies artifacts into Nginx served under `/T8D/`.
+- When hosting separately, ensure your web server rewrites all SPA routes to `/T8D/index.html` and serves correct `Content-Type` headers.
 
----
+## 🩹 Troubleshooting
 
-For more information about the overall project structure and contribution guidelines, see the [main README](../README.md) and [WORKFLOW.md](../WORKFLOW.md).
+| Issue                       | Fix                                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| Dev server port conflict    | `pnpm dev -- --port 5174` or edit `vite.config.ts`                                  |
+| API calls fail offline      | Expected—writes queue locally; inspect Sync panel or `useSyncState` hook for status |
+| Service worker not updating | Clear site data or run `pnpm vite build --force` to invalidate caches               |
+| IndexedDB errors in tests   | Ensure `fake-indexeddb/auto` is imported in `tests/setup/setup.ts`                  |
+
+Need the big picture? Jump back to the root [`README.md`](../README.md) or `../QUICKSTART.md` for end-to-end onboarding, and pair this document with `../backend/README.md` when developing full-stack features.
