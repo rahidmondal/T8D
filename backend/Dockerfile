@@ -1,55 +1,37 @@
-# Build stage
-FROM node:18-alpine AS build
-
+# ---- Base ----
+FROM node:20-alpine AS base
+RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Copy workspace config and package files
+# ---- Dependencies ----
+FROM base AS dependencies
+WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
-
-# Install dependencies
+RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 
-# Copy backend source code and prisma schema
+# ---- Build ----
+FROM dependencies AS build
+WORKDIR /app
 COPY backend ./backend
-
-# Generate Prisma client
 WORKDIR /app/backend
-RUN pnpm prisma generate
-
-# Build the backend
+RUN pnpm dlx prisma generate
 RUN pnpm build
 
-# Production stage
-FROM node:18-alpine
-
+# ---- Production ----
+FROM base AS production
 WORKDIR /app
-
-# Install pnpm
+COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=build /app/backend/package.json ./backend/
 RUN npm install -g pnpm
+RUN pnpm install --filter t8d-sync-server --prod --frozen-lockfile
 
-# Copy workspace config and package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY backend/package.json ./backend/
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built application from build stage
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
-COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
-
 WORKDIR /app/backend
-
-# Expose the port the app runs on
+RUN pnpm dlx prisma generate
+COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 EXPOSE 3000
-
-# Set environment to production
-ENV NODE_ENV=production
-
-# Run migrations and start the server
-CMD ["sh", "-c", "pnpm prisma migrate deploy && pnpm start"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

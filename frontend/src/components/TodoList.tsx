@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DateTime from '@src/components/DateTime';
 import TodoForm from '@src/components/TodoForm';
 import TodoItem from '@src/components/TodoItem';
+import { useSyncState } from '@src/hooks/useSyncState';
 import { useTaskLists } from '@src/hooks/useTaskLists';
 import { Task, TaskStatus } from '@src/models/Task';
 import { deleteTask, getTasksByList, updateTask } from '@src/utils/todo/todo';
@@ -23,6 +24,7 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
   const [dragTargetItem, setDragTargetItem] = useState<string | null>(null);
+  const { lastSyncTimestamp } = useSyncState();
 
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -66,7 +68,7 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
 
   useEffect(() => {
     void loadTasks();
-  }, [loadTasks]);
+  }, [loadTasks, lastSyncTimestamp]);
 
   useEffect(() => {
     localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify(expandedState));
@@ -171,7 +173,8 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
   };
 
   const getChildTasks = useCallback(
-    (parentId: string | null) => tasks.filter(task => task.parentId === parentId).sort((a, b) => a.order - b.order),
+    (parentId: string | null): Task[] =>
+      tasks.filter(task => task.parentId === parentId).sort((a, b) => a.order - b.order),
     [tasks],
   );
 
@@ -276,7 +279,7 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
         return;
       }
 
-      let currentParentId: string | null = newParent.parentId;
+      let currentParentId: string | null = newParent.id;
       while (currentParentId) {
         if (currentParentId === taskId) {
           console.error('Cannot make a task a child of its own descendant.');
@@ -476,7 +479,7 @@ const TodoList = ({ onTaskChange = () => {}, formRef, listRef }: TodoListProps) 
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className={`h-5 w-5 mr-2 transform transition-transform duration-200 text-slate-500 ${
-                        showCompleted ? 'rotate-180' : 'rotate-0'
+                        showCompleted ? 'rotate-0' : '-rotate-90'
                       }`}
                       viewBox="0 0 20 20"
                       fill="currentColor"

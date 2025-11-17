@@ -1,264 +1,146 @@
 # T8D
 
-A modern, offline-first to-do list application focused on private task management. Built as a progressive web app (PWA) with React and TypeScript.
+Modern, privacy-first task management that stays fast offline, syncs instantly online, and ships as a progressive web app powered by React, Express, and PostgreSQL.
 
-## ✨ Features
+## Table of Contents
 
-- **Offline-First**: Works seamlessly without internet connection
-- **Real-time Sync**: Synchronize tasks across devices
-- **PWA Support**: Install as a native app on any platform
-- **Dark Mode**: Beautiful dark/light theme support
-- **Privacy-Focused**: Your data, your control
-- **Subtasks**: Organize with nested task hierarchies
-- **Multiple Lists**: Organize tasks into separate lists
+1. [Highlights](#-highlights)
+2. [Quick Start](#-quick-start)
+3. [Project Overview](#-project-overview)
+4. [Development](#-development)
+5. [Docker in 60 Seconds](#-docker-in-60-seconds)
+6. [Documentation Map](#-documentation-map)
+7. [Quality Toolkit](#-quality-toolkit)
+8. [Tech Stack](#-tech-stack)
+9. [Contributing & Support](#-contributing--support)
+10. [License](#-license)
 
----
+## ✨ Highlights
+
+- **Offline-first core** keeps tasks available even when the network drops.
+- **Real-time sync** merges changes across devices through the Express + Prisma backend.
+- **Installable PWA** delivers native-like behavior on desktop and mobile.
+- **Hierarchical lists** with subtasks, list-level views, and quick counters.
+- **Privacy & security** via JWT auth, bcrypt hashing, scoped CORS, and per-user data.
 
 ## 🚀 Quick Start
 
-**New to T8D?** See our [Quick Start Guide](QUICKSTART.md) for the fastest way to get running!
+Pick the flow that matches your goal—full instructions live in [QUICKSTART.md](QUICKSTART.md).
 
-### Prerequisites
+### Option A – Docker (fastest full stack)
 
-- [Node.js](https://nodejs.org/) (v18+)
-- [pnpm](https://pnpm.io/) (recommended package manager)
-- [Docker](https://docker.com/) (optional, for containerized deployment)
+```bash
+git clone https://github.com/rahidmondal/T8D.git
+cd T8D
+cp .env.example .env  # set JWT + DB secrets
+docker compose up --build -d
+docker compose logs -f backend  # Prisma migrations run automatically
+```
 
-### Development Setup
+- Frontend: http://localhost:8080/T8D/
+- Backend API: http://localhost:3000/api/v1/
+- Health: http://localhost:3000/health
 
-1. **Clone and install dependencies:**
+### Option B – Local development
 
-   ```bash
-   git clone https://github.com/rahidmondal/T8D.git
-   cd T8D
-   pnpm install
-   ```
+```bash
+git clone https://github.com/rahidmondal/T8D.git
+cd T8D
+pnpm install
+cd backend && cp .env.example .env && pnpm prisma migrate deploy && cd ..
+pnpm run dev  # runs backend + frontend together
+```
 
-2. **Set up backend environment:**
+- Frontend Dev Server: http://localhost:5173/T8D/
+- Backend Dev API: http://localhost:3000/api/v1/
 
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+## 🧭 Project Overview
 
-3. **Start development servers:**
-
-   ```bash
-   # Start both frontend and backend
-   pnpm run dev
-
-   # Or start individually
-   pnpm run frontend:dev  # Frontend: http://localhost:5173
-   pnpm run backend:dev   # Backend: http://localhost:3000
-   ```
-
-4. **Access the application:**
-   - Frontend: http://localhost:5173/T8D/
-   - Backend API: http://localhost:3000/api/v1/
-
----
-
-## 🏗️ Project Structure
-
-This is a **pnpm monorepo** with the following structure:
+T8D is a pnpm workspace with isolated frontend/backend packages and shared automation scripts.
 
 ```
 T8D/
-├── frontend/           # React + TypeScript client app
-│   ├── src/
-│   ├── tests/
-│   └── README.md      # Frontend-specific documentation
-├── backend/            # Node.js + Express API server
-│   ├── src/
-│   ├── prisma/        # Database schema
-│   ├── tests/
-│   └── API_DOCUMENTATION.md
-├── WORKFLOW.md         # Development workflow guide
-├── CONTRIBUTING.md     # Contribution guidelines
-├── CODE_OF_CONDUCT.md  # Code of conduct
-├── DOCKER.md           # Docker deployment guide
-└── package.json        # Monorepo scripts
+├── backend/                  # Express sync server (Prisma, Socket.IO)
+│   ├── src/                  # API routes, middleware, realtime
+│   ├── prisma/               # Schema + migrations
+│   ├── tests/                # Vitest suites
+│   ├── README.md             # Backend overview
+│   └── SETUP.md              # Deep-dive setup & deployment
+├── frontend/                 # React PWA client
+│   ├── src/                  # Components, hooks, contexts
+│   └── README.md             # Frontend-specific notes
+├── docker-compose.yaml       # Postgres + backend + frontend stack
+├── DOCKER.md                 # Full container guide
+├── QUICKSTART.md             # Step-by-step onboarding
+├── WORKFLOW.md               # Branching & release process
+├── CONTRIBUTING.md           # Contribution guidelines
+└── package.json              # Monorepo scripts
 ```
 
----
+## 🛠 Development
 
-## 🛠️ Available Scripts
+- **Requirements**: Node.js 18+, pnpm 8+, PostgreSQL 14+ (or Docker), Git.
+- **Environment**: copy `backend/.env.example` to `.env`, set `DATABASE_URL`, `JWT_SECRET`, and `ALLOWED_ORIGINS`.
+- **Run everything**: `pnpm run dev` spins up both apps concurrently.
+- **Run individually**: `pnpm run frontend:dev` and `pnpm run backend:dev`.
+- **Database**: apply Prisma migrations with `pnpm --filter t8d-sync-server prisma migrate deploy` and inspect tables via `pnpm --filter t8d-sync-server prisma studio`.
+- **Testing**: `pnpm test` (all), or scope with `pnpm frontend:test` / `pnpm backend:test`.
+
+Need the detailed backend workflow? Check `backend/README.md` (overview) and `backend/SETUP.md` (deep guide).
+
+## 🐳 Docker in 60 Seconds
+
+- Compose file launches PostgreSQL 16, the backend (Node 20 + Prisma), and an Nginx-served React build.
+- `backend/docker-entrypoint.sh` automatically runs `pnpm dlx prisma migrate deploy` so new migrations apply on each boot.
+- Health checks are wired into Postgres; restart order is already managed through `depends_on`.
+- Use `docker compose logs -f backend` to watch `[entrypoint]` messages confirming migration status.
+- Extended instructions (backups, production overlays, troubleshooting) live in [DOCKER.md](DOCKER.md).
+
+## 📑 Documentation Map
+
+- `QUICKSTART.md` – newcomer-friendly setup paths (Docker, local, frontend-only).
+- `DOCKER.md` – production-minded container usage, health checks, backups.
+- `backend/README.md` – backend architecture, scripts, environment, and testing.
+- `backend/SETUP.md` – exhaustive backend walkthrough, deployment patterns, and troubleshooting.
+- `frontend/README.md` – UI architecture, available scripts, and styling conventions.
+- `backend/API_DOCUMENTATION.md` – REST + realtime reference.
+- `WORKFLOW.md` / `CONTRIBUTING.md` – collaboration, branching, review checklists.
+
+## 🧪 Quality Toolkit
 
 ```bash
-# Development
-pnpm run dev            # Start both frontend and backend
-pnpm run frontend:dev   # Start frontend only
-pnpm run backend:dev    # Start backend only
-
-# Quality Assurance
-pnpm run lint           # Lint all packages
-pnpm run lint:fix       # Fix linting issues
-pnpm run test           # Run all tests
-pnpm run coverage       # Generate test coverage
-pnpm run type-check     # TypeScript type checking
-pnpm run format         # Format code with Prettier
-pnpm run format:check   # Check code formatting
-pnpm run check          # Run all quality checks
-
-# Production
-pnpm run build          # Build all packages
-pnpm run preview        # Preview production build
+pnpm run lint           # ESLint across packages
+pnpm run test           # Vitest suites (frontend + backend)
+pnpm run coverage       # Coverage via Vitest V8
+pnpm run type-check     # TypeScript project references
+pnpm run format         # Prettier write
+pnpm run format:check   # Prettier verify
+pnpm run check          # Lint + format:check + type-check + test
 ```
 
----
+Package-scoped aliases exist (`frontend:dev`, `backend:test`, etc.)—see `package.json` for the full matrix.
 
-## 🐳 Docker Deployment
+## 🧱 Tech Stack
 
-### Quick Deploy
+| Layer    | Technologies                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, React Context, IndexedDB (idb), Vitest + Testing Library |
+| Backend  | Node 20, Express 5, Prisma ORM, PostgreSQL, Passport + JWT, Socket.IO, Zod validation              |
+| DevOps   | pnpm workspaces, Docker/Compose, ESLint, Prettier, GitHub Actions (planned)                        |
 
-```bash
-# Copy environment file
-cp .env.example .env
+## 🤝 Contributing & Support
 
-# Edit .env with your configuration
-nano .env
+- Start with `CONTRIBUTING.md` + `WORKFLOW.md` for coding standards, branching, and review expectations.
+- Run `pnpm run check` before opening any PR against `improvement/general-fix-and-refactor` or `dev`.
+- Issues: [GitHub Issues](https://github.com/rahidmondal/T8D/issues)
+- Discussions: [GitHub Discussions](https://github.com/rahidmondal/T8D/discussions)
 
-# Build and run with Docker Compose
-docker-compose up --build -d
-
-# Access the application
-# Frontend: http://localhost:8080/T8D/
-# Backend: http://localhost:3000/api/v1/
-```
-
-For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
-
----
-
-## 📚 Documentation
-
-### For Users
-
-- [README.md](README.md) - This file (getting started)
-- [DOCKER.md](DOCKER.md) - Docker deployment guide
-
-### For Developers
-
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
-- [WORKFLOW.md](WORKFLOW.md) - Development workflow and Git practices
-- [Backend API Documentation](backend/API_DOCUMENTATION.md) - Complete API reference
-- [Frontend README](frontend/README.md) - Frontend-specific docs
-
-### Project Policies
-
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
-- [LICENSE](LICENSE) - MIT License
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) and [WORKFLOW.md](WORKFLOW.md) for:
-
-- Code of conduct
-- Development workflow
-- Branching strategy
-- Commit message format
-- Pull request process
-- Testing requirements
-- Coding standards
-
-**Quick Start for Contributors:**
-
-1. Fork the repository
-2. Create a feature branch from `dev`
-3. Make your changes following our coding standards
-4. Run `pnpm check` to ensure quality
-5. Submit a pull request to `dev` branch
-
----
-
-## 🏗️ Tech Stack
-
-### Frontend
-
-- **Framework**: React 19 with TypeScript
-- **Styling**: Tailwind CSS 4
-- **State Management**: React Context API
-- **Offline Storage**: IndexedDB (via idb)
-- **Build Tool**: Vite
-- **PWA**: vite-plugin-pwa
-- **Testing**: Vitest + Testing Library
-
-### Backend
-
-- **Runtime**: Node.js 18+
-- **Framework**: Express 5
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: JWT + Passport
-- **Real-time**: Socket.IO
-- **Validation**: Zod
-- **Security**: bcrypt, zxcvbn
-
-### DevOps
-
-- **Package Manager**: pnpm (monorepo)
-- **Linting**: ESLint
-- **Formatting**: Prettier
-- **Containerization**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions (planned)
-
----
-
-## 🔐 Security
-
-Security is a top priority. For security-related concerns:
-
-- **Report vulnerabilities**: See [SECURITY.md](SECURITY.md) for reporting procedures
-- **Security features**: JWT authentication, bcrypt password hashing, input validation
-- **Best practices**: Never commit secrets, use environment variables
-
----
-
-## 📊 Project Status
-
-- **Version**: 1.3.0
-- **Status**: Active Development
-- **License**: MIT
-- **Maintainers**: Rahid Mondal, Pushpam Jha
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) and [WORKFLOW.md](WORKFLOW.md) for:
-
-- Code of conduct
-- Development workflow
-- Pull request process
-- Issue reporting guidelines
-
----
-
-## 🌟 Support
-
-If you find this project helpful:
-
-- ⭐ Star the repository
-- 🐛 Report bugs via [GitHub Issues](https://github.com/rahidmondal/T8D/issues)
-- 💡 Suggest features via [GitHub Discussions](https://github.com/rahidmondal/T8D/discussions)
-- 🤝 Contribute code or documentation
-
----
+If the project helps you, star the repo, open issues, or send PRs—every bit keeps the sync server and PWA sharp.
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Released under the MIT License. See [`LICENSE`](LICENSE) for full terms.
 
 ---
 
-## 📞 Contact
-
-- **Repository**: [github.com/rahidmondal/T8D](https://github.com/rahidmondal/T8D)
-- **Issues**: [GitHub Issues](https://github.com/rahidmondal/T8D/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/rahidmondal/T8D/discussions)
-
----
-
-Made with ❤️ by the T8D Team
+Made with ❤️ by the T8D team.

@@ -28,34 +28,41 @@ nano .env  # or use your preferred editor
 ```
 
 **Important**: Update the following values in `.env`:
+
 - `POSTGRES_PASSWORD`: Use a strong, unique password
 - `JWT_SECRET`: Generate a secure random string
 - `ALLOWED_ORIGINS`: Set to your frontend URL(s)
 
-### 3. Start All Services
+### 3. Build & Start (Auto-migrations included)
 
 ```bash
 # Build and start all services (frontend, backend, database)
-docker-compose up --build -d
+docker compose up --build -d
 
-# View logs
-docker-compose logs -f
+# Follow logs to watch Prisma migrations run on startup
+docker compose logs -f backend
 ```
 
-### 4. Access the Application
+On container boot the backend entrypoint automatically runs `pnpm dlx prisma migrate deploy`. The first start may take a little longer while migrations apply; subsequent restarts log `No pending migrations to apply.`
+
+### 4. Verify
 
 - **Frontend**: http://localhost:8080/T8D/
 - **Backend API**: http://localhost:3000/api/v1/
 - **Health Check**: http://localhost:3000/health
+- **Auth smoke test**:
+  ```bash
+  curl -i http://localhost:3000/api/v1/auth/login
+  ```
 
 ### 5. Stop Services
 
 ```bash
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (WARNING: deletes all data)
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
@@ -82,18 +89,21 @@ The Docker setup consists of three services:
 ### Services
 
 #### 1. PostgreSQL Database (`postgres`)
+
 - **Image**: postgres:16-alpine
 - **Port**: 5432
 - **Volume**: `postgres_data` for persistence
 - **Purpose**: Stores all application data
 
 #### 2. Backend API (`backend`)
+
 - **Build**: Custom Node.js image
 - **Port**: 3000
 - **Dependencies**: PostgreSQL
 - **Purpose**: RESTful API and WebSocket server
 
 #### 3. Frontend (`frontend`)
+
 - **Build**: Custom Nginx image with React build
 - **Port**: 8080 (maps to 80 inside container)
 - **Purpose**: Serves the PWA application
@@ -104,20 +114,20 @@ The Docker setup consists of three services:
 
 ### Required Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `POSTGRES_USER` | PostgreSQL username | `t8d_user` |
-| `POSTGRES_PASSWORD` | PostgreSQL password (change in production!) | `secure_password_123` |
-| `POSTGRES_DB` | PostgreSQL database name | `t8d_db` |
-| `JWT_SECRET` | Secret key for JWT tokens | `generated_secret_key` |
-| `ALLOWED_ORIGINS` | Comma-separated allowed CORS origins | `http://localhost:8080` |
+| Variable            | Description                                 | Example                 |
+| ------------------- | ------------------------------------------- | ----------------------- |
+| `POSTGRES_USER`     | PostgreSQL username                         | `t8d_user`              |
+| `POSTGRES_PASSWORD` | PostgreSQL password (change in production!) | `secure_password_123`   |
+| `POSTGRES_DB`       | PostgreSQL database name                    | `t8d_db`                |
+| `JWT_SECRET`        | Secret key for JWT tokens                   | `generated_secret_key`  |
+| `ALLOWED_ORIGINS`   | Comma-separated allowed CORS origins        | `http://localhost:8080` |
 
 ### Optional Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SERVER_PORT` | Backend server port | `3000` |
-| `NODE_ENV` | Node environment | `production` |
+| Variable      | Description         | Default      |
+| ------------- | ------------------- | ------------ |
+| `SERVER_PORT` | Backend server port | `3000`       |
+| `NODE_ENV`    | Node environment    | `production` |
 
 ### Generating Secure Secrets
 
@@ -172,13 +182,13 @@ docker-compose up --build -d backend
 
 ```bash
 # Access backend shell
-docker-compose exec backend sh
+docker compose exec backend sh
 
-# Run Prisma migrations
-docker-compose exec backend pnpm prisma migrate deploy
+# Manual Prisma migration run (entrypoint runs this automatically on start)
+docker compose exec backend pnpm dlx prisma migrate deploy
 
 # Access PostgreSQL
-docker-compose exec postgres psql -U t8d_user -d t8d_db
+docker compose exec postgres psql -U t8d_user -d t8d_db
 ```
 
 ### Database Management
@@ -231,7 +241,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups  # Mount backup directory
+      - ./backups:/backups # Mount backup directory
     networks:
       - t8d-network
     # Don't expose port to host in production
@@ -321,11 +331,13 @@ secrets:
 ### Container Won't Start
 
 **Check logs:**
+
 ```bash
 docker-compose logs backend
 ```
 
 **Common issues:**
+
 - Database not ready: Wait for PostgreSQL health check to pass
 - Port already in use: Change port mapping in docker-compose.yaml
 - Missing environment variables: Check `.env` file
@@ -333,12 +345,14 @@ docker-compose logs backend
 ### Database Connection Issues
 
 **Check PostgreSQL status:**
+
 ```bash
 docker-compose ps postgres
 docker-compose logs postgres
 ```
 
 **Test connection:**
+
 ```bash
 docker-compose exec backend sh
 # Inside container:
@@ -346,6 +360,7 @@ node -e "require('./dist/app.js')"
 ```
 
 **Verify DATABASE_URL:**
+
 ```bash
 docker-compose exec backend env | grep DATABASE_URL
 ```
@@ -353,11 +368,13 @@ docker-compose exec backend env | grep DATABASE_URL
 ### Frontend 404 Errors
 
 **Check build output:**
+
 ```bash
 docker-compose exec frontend ls -la /usr/share/nginx/html/T8D/
 ```
 
 **Verify Nginx config:**
+
 ```bash
 docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
 ```
@@ -365,11 +382,13 @@ docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
 ### Performance Issues
 
 **Monitor resource usage:**
+
 ```bash
 docker stats
 ```
 
 **Check container health:**
+
 ```bash
 docker-compose ps
 ```
@@ -377,14 +396,20 @@ docker-compose ps
 ### Prisma Migration Issues
 
 **Run migrations manually:**
+
 ```bash
-docker-compose exec backend pnpm prisma migrate deploy
+docker compose exec backend pnpm dlx prisma migrate deploy
 ```
 
 **Reset database (development only):**
+
 ```bash
-docker-compose exec backend pnpm prisma migrate reset
+docker compose exec backend pnpm prisma migrate reset
 ```
+
+**Automatic on startup:**
+
+The backend image runs `pnpm dlx prisma migrate deploy` via `docker-entrypoint.sh` before launching the server. Check `docker compose logs backend` for `[entrypoint]` messages to confirm migrations ran. If you wipe volumes or add a new migration, just restart the stack and the entrypoint applies it automatically.
 
 ---
 
@@ -401,15 +426,16 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-      target: build  # Use build stage only
-    command: pnpm dev  # Use dev command
+      target: build # Use build stage only
+    command: pnpm dev # Use dev command
     volumes:
-      - ./backend/src:/app/backend/src  # Mount source
+      - ./backend/src:/app/backend/src # Mount source
     environment:
       NODE_ENV: development
 ```
 
 Start with:
+
 ```bash
 docker-compose -f docker-compose.dev.yaml up
 ```
@@ -450,10 +476,10 @@ Use a logging driver:
 services:
   backend:
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 ```
 
 ### Health Monitoring
@@ -575,13 +601,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Build images
         run: docker-compose build
-      
+
       - name: Run tests
         run: docker-compose run backend pnpm test
-      
+
       - name: Push to registry
         run: |
           docker-compose push
@@ -603,6 +629,7 @@ jobs:
 ## Support
 
 For issues or questions:
+
 - Check [GitHub Issues](https://github.com/rahidmondal/T8D/issues)
 - See [Troubleshooting](#troubleshooting) section
 - Open a new issue with the `docker` label

@@ -4,6 +4,12 @@ interface ApiClientOptions extends RequestInit {
   isPublic?: boolean;
 }
 
+const joinUrl = (base: string, endpoint: string): string => {
+  const normalizedBase = base.replace(/\/+$/, '');
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${normalizedBase}${normalizedEndpoint}`;
+};
+
 /**
  * A generic and type-safe wrapper for the browser's fetch() API.
  * - Reads Base URL from localStorage
@@ -25,7 +31,7 @@ export const apiClient = async <T>(endpoint: string, options: ApiClientOptions =
     headers.append('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${baseUrl}${endpoint}`, {
+  const response = await fetch(joinUrl(baseUrl, endpoint), {
     ...options,
     headers,
   });
