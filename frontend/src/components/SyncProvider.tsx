@@ -10,6 +10,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setSyncing = useCallback((syncState: boolean) => {
     setIsSyncingState(syncState);
   }, []);
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState(() => Date.now());
 
   const [isSyncEnabled, setIsSyncEnabledState] = useState<boolean>(getSyncEnabled());
 
@@ -18,8 +19,14 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSyncEnabledState(isEnabled);
   }, []);
 
+  const triggerSyncRefresh = useCallback(() => {
+    setLastSyncTimestamp(Date.now());
+  }, []);
+
   return (
-    <SyncContext.Provider value={{ isSyncing, setSyncing, isSyncEnabled, setIsSyncEnabled }}>
+    <SyncContext.Provider
+      value={{ isSyncing, setSyncing, isSyncEnabled, setIsSyncEnabled, lastSyncTimestamp, triggerSyncRefresh }}
+    >
       {children}
     </SyncContext.Provider>
   );

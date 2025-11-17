@@ -5,6 +5,8 @@ export interface SyncContextType {
   setSyncing: (isSyncing: boolean) => void;
   isSyncEnabled: boolean;
   setIsSyncEnabled: (isEnabled: boolean) => void;
+  lastSyncTimestamp: number;
+  triggerSyncRefresh: () => void;
 }
 
 export const SyncContext = createContext<SyncContextType | undefined>(undefined);
