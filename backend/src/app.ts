@@ -6,7 +6,7 @@ import passport from 'passport';
 import { initializePassport } from './auth/passport.js';
 import { disconnectPrisma } from './db/queries.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { initializeSocketIO } from './realtime/init.js';
+import { getIO, initializeSocketIO } from './realtime/init.js';
 import apiRouter from './routes/index.js';
 import { getAllowedOrigins } from './utils/cors.js';
 
@@ -44,20 +44,33 @@ const server = httpServer.listen(PORT, () => {
   console.info(`[t8d-sync-server] Server is running at http://localhost:${String(PORT)}`);
 });
 
-const shutdown = async () => {
+const shutdown = () => {
   console.info('Shutting down server...');
-  await disconnectPrisma();
-  server.close(() => {
-    console.info('Server closed');
-    process.exit(0);
+
+  const ioInstance = getIO();
+
+  void ioInstance.close(() => {
+    console.info('Socket.io connection closed.');
+
+    void disconnectPrisma();
+
+    server.close(() => {
+      console.info('HTTP Server Closed. Exiting');
+      process.exit(0);
+    });
   });
+
+  setTimeout(() => {
+    console.warn('Forcing shutdown after Timeout.');
+    process.exit(1);
+  }, 1000);
 };
 
 process.on('SIGINT', () => {
-  void shutdown();
+  shutdown();
 });
 process.on('SIGTERM', () => {
-  void shutdown();
+  shutdown();
 });
 
 server.on('error', (err: unknown) => {

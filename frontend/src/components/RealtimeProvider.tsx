@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import { useSyncState } from '@src/hooks/useSyncState';
+
 import { RealtimeContext } from '../context/RealtimeContext';
 import { useAuth } from '../hooks/useAuth';
 import { disconnectSocket, initializeSocket, T8DSocket } from '../utils/realtime/socket';
@@ -9,11 +11,12 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { user } = useAuth();
   const [socket, setSocket] = useState<T8DSocket | undefined>(undefined);
   const [isConnected, setIsConnected] = useState(false);
+  const { isSyncEnabled, triggerSyncRefresh } = useSyncState();
 
   const attachedSocketRef = useRef<T8DSocket | undefined>(undefined);
 
   useEffect(() => {
-    if (user) {
+    if (user && isSyncEnabled) {
       const socketInstance = initializeSocket();
       setSocket(socketInstance);
 
@@ -40,6 +43,8 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             console.info('[Realtime] Sync triggered by Poke complete.');
           } catch (err) {
             console.error('[Realtime] Failed to sync after poke:', err);
+          } finally {
+            triggerSyncRefresh();
           }
         };
 
@@ -58,7 +63,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSocket(undefined);
       setIsConnected(false);
     }
-  }, [user]);
+  }, [user, isSyncEnabled, triggerSyncRefresh]);
 
   useEffect(() => {
     return () => {

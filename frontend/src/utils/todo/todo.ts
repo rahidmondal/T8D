@@ -80,7 +80,7 @@ export const createTask = async (
   };
 
   await addTaskToDb(task);
-  void SyncManager.pushTaskChange(task);
+  await SyncManager.pushTaskChange(task);
   return task;
 };
 
@@ -102,7 +102,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
   const updatedTask: Task = { ...updatedTaskData, hash };
 
   await updateTaskInDb(updatedTask);
-  void SyncManager.pushTaskChange(updatedTask);
+  await SyncManager.pushTaskChange(updatedTask);
 
   if (updates.status === TaskStatus.COMPLETED) {
     const childTasks = await getTasksByParentFromDb(taskId);
@@ -146,7 +146,7 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
     await deleteTaskFromDb(currentTaskId);
 
-    void SyncManager.pushTaskDelete(tombstone);
+    await SyncManager.pushTaskDelete(tombstone);
   };
 
   await performDelete(taskId);
@@ -169,8 +169,6 @@ export const getTask = async (id: string): Promise<Task | undefined> => {
 
   return task;
 };
-
-// --- TaskList Logic ---
 
 export const generateTaskListHash = async (list: Omit<TaskList, 'hash'>): Promise<string> => {
   const dataToHash = [
@@ -205,7 +203,7 @@ export const createTaskList = async (name: string, description?: string): Promis
   };
 
   await addTaskListToDb(list);
-  void SyncManager.pushListChange(list);
+  await SyncManager.pushListChange(list);
   return list;
 };
 
@@ -226,7 +224,7 @@ export const deleteTaskList = async (listId: string): Promise<void> => {
 
   await deleteTaskListFromDb(listId);
 
-  void SyncManager.pushListDelete(tombstone);
+  await SyncManager.pushListDelete(tombstone);
 };
 
 export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskList, 'id'>>): Promise<TaskList> => {
@@ -244,7 +242,7 @@ export const updateTaskList = async (listId: string, updates: Partial<Omit<TaskL
   const updatedList: TaskList = { ...updatedListData, hash };
 
   await updateTaskListInDb(updatedList);
-  void SyncManager.pushListChange(updatedList);
+  await SyncManager.pushListChange(updatedList);
   return updatedList;
 };
 

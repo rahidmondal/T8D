@@ -5,7 +5,7 @@ import { useSyncState } from '@src/hooks/useSyncState';
 import { apiClient } from '@src/utils/api/apiClient';
 import { getApiBaseUrl, saveApiBaseUrl } from '@src/utils/api/apiSettings';
 import { performSync, queueAllLocalData } from '@src/utils/sync/syncManager';
-import { getSyncEnabled, getSyncInterval, isAutoSyncEnabled, setSyncEnabled } from '@src/utils/sync/syncSettings';
+import { getSyncInterval, isAutoSyncEnabled } from '@src/utils/sync/syncSettings';
 
 import EditUserForm from './EditUserForm';
 import LoginForm from './LoginForm';
@@ -26,14 +26,14 @@ function SyncManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [apiSaverError, setApiSaverError] = useState<string | null>(null);
   const [apiSaverSuccess, setApiSaverSuccess] = useState<string | null>(null);
-  const [isSyncEnabled, setIsSyncEnabled] = useState<boolean>(getSyncEnabled());
   const [isSyncInitializing, setIsSyncInitializing] = useState(false);
 
   const { user, logout, isLoading } = useAuth();
-  const { isSyncing, setSyncing } = useSyncState();
-
+  const { isSyncing, setSyncing, isSyncEnabled, setIsSyncEnabled } = useSyncState();
   const runSync = useCallback(async () => {
-    if (!user || !navigator.onLine) return;
+    if (!user || !navigator.onLine || !isSyncEnabled) return;
+
+    if (isSyncing) return;
 
     try {
       setSyncing(true);
@@ -43,12 +43,16 @@ function SyncManager() {
     } finally {
       setSyncing(false);
     }
-  }, [user, setSyncing]);
+  }, [user, setSyncing, isSyncEnabled, isSyncing]);
 
   useEffect(() => {
-    if (!user || !isAutoSyncEnabled()) return () => {};
-    void runSync();
+    if (!user || !isAutoSyncEnabled() || !isSyncEnabled) return () => {};
 
+    const initialQueueAndSync = async () => {
+      await queueAllLocalData();
+      void runSync();
+    };
+    void initialQueueAndSync();
     const intervalId = setInterval(() => {
       void runSync();
     }, getSyncInterval());
@@ -62,7 +66,7 @@ function SyncManager() {
       clearInterval(intervalId);
       window.removeEventListener('online', handleOnline);
     };
-  }, [user, runSync]);
+  }, [user, runSync, isSyncEnabled]);
 
   const handleBaseUrlSave = () => {
     setApiSaverError(null);
@@ -103,8 +107,6 @@ function SyncManager() {
   const handleSyncToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setIsSyncEnabled(newValue);
-    setSyncEnabled(newValue);
-
     if (newValue) {
       setIsSyncInitializing(true);
       try {

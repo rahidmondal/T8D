@@ -1,4 +1,4 @@
-import { type Task, type TaskList, type User } from '@prisma/client';
+import { type Prisma, type Task, type TaskList, type User } from '@prisma/client';
 import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
@@ -33,6 +33,8 @@ const TaskSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional().nullable(),
 });
 
+type ZodTask = z.infer<typeof TaskSchema>;
+
 const SyncRequestSchema = z.object({
   changes: z.object({
     taskLists: z.array(TaskListSchema).optional().default([]),
@@ -41,6 +43,70 @@ const SyncRequestSchema = z.object({
   lastSync: z.string().optional(),
   socketId: z.string().optional(),
 });
+
+/**
+ * Helper function to process task upserts in a transaction.
+ * This prevents duplicating the upsert logic.
+ */
+async function processTaskUpserts(tx: Prisma.TransactionClient, tasks: ZodTask[], userId: string): Promise<number> {
+  let pushedTasksCount = 0;
+  if (tasks.length === 0) {
+    return 0;
+  }
+
+  const existingTasks = await tx.task.findMany({
+    where: {
+      id: { in: tasks.map(t => t.id) },
+      list: { userId: userId },
+    },
+  });
+  const existingTaskMap = new Map<string, Task>(existingTasks.map(t => [t.id, t]));
+
+  for (const task of tasks) {
+    const existing = existingTaskMap.get(task.id);
+
+    const shouldUpdate =
+      !existing ||
+      task.lastModified.getTime() > existing.lastModified.getTime() ||
+      (task.lastModified.getTime() === existing.lastModified.getTime() && task.hash > existing.hash);
+
+    if (shouldUpdate) {
+      await tx.task.upsert({
+        where: { id: task.id },
+        create: {
+          id: task.id,
+          listId: task.listId,
+          name: task.name,
+          description: task.description,
+          status: task.status,
+          createdAt: task.createdAt,
+          lastModified: task.lastModified,
+          dueDate: task.dueDate,
+          parentId: task.parentId,
+          order: task.order,
+          is_deleted: task.is_deleted,
+          hash: task.hash,
+          metadata: task.metadata ?? undefined,
+        },
+        update: {
+          name: task.name,
+          description: task.description,
+          status: task.status,
+          lastModified: task.lastModified,
+          dueDate: task.dueDate,
+          listId: task.listId,
+          parentId: task.parentId,
+          order: task.order,
+          is_deleted: task.is_deleted,
+          hash: task.hash,
+          metadata: task.metadata ?? undefined,
+        },
+      });
+      pushedTasksCount++;
+    }
+  }
+  return pushedTasksCount;
+}
 
 export const syncMain = async (req: Request, res: Response) => {
   try {
@@ -107,60 +173,16 @@ export const syncMain = async (req: Request, res: Response) => {
         }
       }
 
-      let pushedTasksCount = 0;
-      if (changes.tasks.length > 0) {
-        const existingTasks = await tx.task.findMany({
-          where: {
-            id: { in: changes.tasks.map(t => t.id) },
-            list: { userId: user.id },
-          },
-        });
-        const existingTaskMap = new Map<string, Task>(existingTasks.map(t => [t.id, t]));
+      // 1. Split tasks into parents and subtasks
+      const parentTasks = changes.tasks.filter(t => !t.parentId);
+      const subtasks = changes.tasks.filter(t => Boolean(t.parentId));
 
-        for (const task of changes.tasks) {
-          const existing = existingTaskMap.get(task.id);
+      // 2. Process parents first
+      const pushedParentTasksCount = await processTaskUpserts(tx, parentTasks, user.id);
+      // 3. Process subtasks second (now that parents are guaranteed to exist)
+      const pushedSubtasksCount = await processTaskUpserts(tx, subtasks, user.id);
 
-          const shouldUpdate =
-            !existing ||
-            task.lastModified.getTime() > existing.lastModified.getTime() ||
-            (task.lastModified.getTime() === existing.lastModified.getTime() && task.hash > existing.hash);
-
-          if (shouldUpdate) {
-            await tx.task.upsert({
-              where: { id: task.id },
-              create: {
-                id: task.id,
-                listId: task.listId,
-                name: task.name,
-                description: task.description,
-                status: task.status,
-                createdAt: task.createdAt,
-                lastModified: task.lastModified,
-                dueDate: task.dueDate,
-                parentId: task.parentId,
-                order: task.order,
-                is_deleted: task.is_deleted,
-                hash: task.hash,
-                metadata: task.metadata ?? undefined,
-              },
-              update: {
-                name: task.name,
-                description: task.description,
-                status: task.status,
-                lastModified: task.lastModified,
-                dueDate: task.dueDate,
-                listId: task.listId,
-                parentId: task.parentId,
-                order: task.order,
-                is_deleted: task.is_deleted,
-                hash: task.hash,
-                metadata: task.metadata ?? undefined,
-              },
-            });
-            pushedTasksCount++;
-          }
-        }
-      }
+      const pushedTasksCount = pushedParentTasksCount + pushedSubtasksCount;
 
       const [pulledLists, pulledTasks] = await Promise.all([
         tx.taskList.findMany({

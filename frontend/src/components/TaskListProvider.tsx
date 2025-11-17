@@ -1,9 +1,9 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { TaskListContext } from '@src/context/TaskListContext';
+import { useSyncState } from '@src/hooks/useSyncState';
 import { TaskList } from '@src/models/TaskList';
 import { createTaskList, deleteTaskList, getAllTaskLists, updateTaskList } from '@src/utils/todo/todo';
-
 const LAST_ACTIVE_LIST_KEY = 't8d-last-active-list';
 
 let isInitializing = false;
@@ -13,6 +13,7 @@ function TaskListProvider({ children }: { children: ReactNode }) {
   const [activeListId, setActiveListIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { lastSyncTimestamp } = useSyncState();
   const initializeLists = useCallback(async () => {
     if (isInitializing) return;
     isInitializing = true;
@@ -48,7 +49,7 @@ function TaskListProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void initializeLists();
-  }, [initializeLists]);
+  }, [initializeLists, lastSyncTimestamp]);
 
   const setActiveListId = (listId: string) => {
     setActiveListIdState(listId);
