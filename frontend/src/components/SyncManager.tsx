@@ -29,8 +29,7 @@ function SyncManager() {
   const [isSyncInitializing, setIsSyncInitializing] = useState(false);
 
   const { user, logout, isLoading } = useAuth();
-  const { isSyncing, setSyncing, isSyncEnabled, setIsSyncEnabled } = useSyncState();
-
+  const { isSyncing, setSyncing, isSyncEnabled, setIsSyncEnabled, triggerSyncRefresh } = useSyncState();
   const runSync = useCallback(async () => {
     if (!user || !navigator.onLine || !isSyncEnabled) return;
 
@@ -43,8 +42,9 @@ function SyncManager() {
       console.error('[SyncManager] Auto-sync failed:', error);
     } finally {
       setSyncing(false);
+      triggerSyncRefresh();
     }
-  }, [user, setSyncing, isSyncEnabled, isSyncing]);
+  }, [user, setSyncing, isSyncEnabled, isSyncing, triggerSyncRefresh]);
 
   useEffect(() => {
     if (!user || !isAutoSyncEnabled() || !isSyncEnabled) return () => {};
