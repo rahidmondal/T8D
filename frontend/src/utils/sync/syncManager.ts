@@ -11,6 +11,7 @@ import {
   getAllTasksFromDb,
   OutboxEntry,
 } from '../database/database';
+import { getSocket } from '../realtime/socket';
 
 import { getSyncEnabled } from './syncSettings';
 
@@ -24,6 +25,7 @@ interface SyncPayload {
     tasks: Task[];
   };
   lastSync?: string | undefined;
+  socketId?: string;
 }
 
 interface SyncResponse {
@@ -47,7 +49,7 @@ const safelyExecute = async (operationName: string, operation: () => Promise<voi
 };
 
 export const performSync = async (): Promise<void> => {
-  if (isSyncing || !getSyncEnabled()) return;
+  if (isSyncing || !getSyncEnabled() || !navigator.onLine) return;
 
   isSyncing = true;
   console.info('[SyncManager] Starting sync...');
@@ -72,10 +74,17 @@ export const performSync = async (): Promise<void> => {
       }
     }
 
+    const socket = getSocket();
+    const socketId = socket?.connected ? socket.id : undefined;
+
     const payload: SyncPayload = {
       changes: { taskLists: [], tasks: [] },
       lastSync,
     };
+
+    if (socketId) {
+      payload.socketId = socketId;
+    }
 
     for (const entry of uniqueEntries.values()) {
       if (entry.entity === 'LIST' && entry.payload) {
@@ -172,10 +181,6 @@ export const pullChanges = (): void => {
 };
 
 export const queueAllLocalData = async (): Promise<void> => {
-  // NOTE: We do NOT use safelyExecute here because we want this to run
-  // even if it was just enabled (safelyExecute checks getSyncEnabled, which might be slightly racy on first toggle).
-  // Actually, handleSyncToggle calls this AFTER setting enabled, so it should be fine.
-  // Let's keep it safe and use safelyExecute to catch errors.
   await safelyExecute('queueAllLocalData', async () => {
     console.info('[SyncManager] Queueing ALL local data for initial sync...');
 
