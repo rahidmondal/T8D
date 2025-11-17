@@ -2,6 +2,9 @@ import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
 
 import App from '@src/App';
+import AuthProvider from '@src/components/AuthProvider';
+import { RealtimeProvider } from '@src/components/RealtimeProvider';
+import { SyncProvider } from '@src/components/SyncProvider';
 import ThemeProvider from '@src/components/ThemeProvider';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -38,14 +41,19 @@ const setupCryptoMock = () => {
 const renderApp = () => {
   return render(
     <ThemeProvider>
-      <App />
+      <AuthProvider>
+        <SyncProvider>
+          <RealtimeProvider>
+            <App />
+          </RealtimeProvider>
+        </SyncProvider>
+      </AuthProvider>
     </ThemeProvider>,
   );
 };
 
 describe('App Component', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     global.indexedDB = new IDBFactory();
     setupCryptoMock();
   });
