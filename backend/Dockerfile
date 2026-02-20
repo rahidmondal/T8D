@@ -16,7 +16,7 @@ FROM dependencies AS build
 WORKDIR /app
 COPY backend ./backend
 WORKDIR /app/backend
-RUN pnpm dlx prisma generate
+RUN pnpm dlx prisma@6.17.1 generate
 RUN pnpm build
 
 # ---- Production ----
@@ -30,8 +30,8 @@ RUN pnpm install --filter t8d-sync-server --prod --frozen-lockfile
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
 WORKDIR /app/backend
-RUN pnpm dlx prisma generate
+RUN pnpm dlx prisma@6.17.1 generate
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
+RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh
 EXPOSE 3000
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/app/backend/docker-entrypoint.sh"]

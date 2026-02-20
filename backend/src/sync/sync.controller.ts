@@ -48,7 +48,12 @@ const SyncRequestSchema = z.object({
  * Helper function to process task upserts in a transaction.
  * This prevents duplicating the upsert logic.
  */
-async function processTaskUpserts(tx: Prisma.TransactionClient, tasks: ZodTask[], userId: string): Promise<number> {
+async function processTaskUpserts(
+  tx: Prisma.TransactionClient,
+  tasks: ZodTask[],
+  userId: string,
+  validListIds: Set<string>,
+): Promise<number> {
   let pushedTasksCount = 0;
   if (tasks.length === 0) {
     return 0;
@@ -63,6 +68,10 @@ async function processTaskUpserts(tx: Prisma.TransactionClient, tasks: ZodTask[]
   const existingTaskMap = new Map<string, Task>(existingTasks.map(t => [t.id, t]));
 
   for (const task of tasks) {
+    if (!validListIds.has(task.listId)) {
+      continue;
+    }
+
     const existing = existingTaskMap.get(task.id);
 
     const shouldUpdate =
@@ -177,10 +186,20 @@ export const syncMain = async (req: Request, res: Response) => {
       const parentTasks = changes.tasks.filter(t => !t.parentId);
       const subtasks = changes.tasks.filter(t => Boolean(t.parentId));
 
+      const incomingTaskListIds = [...new Set(changes.tasks.map(task => task.listId))];
+      const existingTaskLists = await tx.taskList.findMany({
+        where: {
+          userId: user.id,
+          id: { in: incomingTaskListIds },
+        },
+        select: { id: true },
+      });
+      const validListIds = new Set(existingTaskLists.map(list => list.id));
+
       // 2. Process parents first
-      const pushedParentTasksCount = await processTaskUpserts(tx, parentTasks, user.id);
+      const pushedParentTasksCount = await processTaskUpserts(tx, parentTasks, user.id, validListIds);
       // 3. Process subtasks second (now that parents are guaranteed to exist)
-      const pushedSubtasksCount = await processTaskUpserts(tx, subtasks, user.id);
+      const pushedSubtasksCount = await processTaskUpserts(tx, subtasks, user.id, validListIds);
 
       const pushedTasksCount = pushedParentTasksCount + pushedSubtasksCount;
 
