@@ -36,3 +36,6 @@ coverage/
 postgres-data/
 generated/
 
+# Legacy
+.legacy_V1/node_modules
+.legacy_V1/dist
