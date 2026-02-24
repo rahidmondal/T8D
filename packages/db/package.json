@@ -1,0 +1,14 @@
+{
+  "name": "@t8d/db",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@t8d/sdk": "workspace:*",
+    "dexie": "^4.0.0",
+    "rxjs": "^7.8.0"
+  }
+}
