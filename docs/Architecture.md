@@ -112,8 +112,8 @@ The "Shared Mental Context" and security boundary.
 
 ```typescript
 export enum TaskStatus {
-  NOT_COMPLETED = "not_completed",
-  COMPLETED = "completed",
+  NOT_COMPLETED = 'not_completed',
+  COMPLETED = 'completed',
 }
 
 export interface Task {

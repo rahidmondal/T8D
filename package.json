@@ -1,0 +1,13 @@
+{
+  "name": "t8d",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "packageManager": "pnpm@10.26.0",
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  },
+  "license": "MIT"
+}

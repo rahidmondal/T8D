@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.pnpm-store
+pnpm-lock.yaml
+.dockerignore
+package.json
+.legacy_V1
