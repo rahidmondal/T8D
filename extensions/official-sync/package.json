@@ -1,0 +1,19 @@
+{
+  "name": "@t8d/official-sync",
+  "version": "1.0.0",
+  "description": "Bridge between PWA Host and Sync-Box",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@t8d/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "typescript": "^5.5.3"
+  }
+}
